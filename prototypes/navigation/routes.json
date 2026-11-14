@@ -378,7 +378,10 @@
         ]
       ],
       "distance_m": 178.0,
-      "max_slope_deg": 29.7
+      "max_slope_deg": 29.7,
+      "mean_slope_deg": 14.35,
+      "high_slope_cells": 34,
+      "elevation_gain_m": 23.95
     },
     "risk_aware": {
       "points_rc": [
@@ -744,7 +747,10 @@
         ]
       ],
       "distance_m": 219.42,
-      "max_slope_deg": 9.98
+      "max_slope_deg": 9.98,
+      "mean_slope_deg": 6.9,
+      "high_slope_cells": 0,
+      "elevation_gain_m": 3.8
     }
   }
 }

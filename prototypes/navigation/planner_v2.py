@@ -1,0 +1,235 @@
+"""MarsEye A* navigator — synthetic demo or externally supplied DEM.
+
+Examples (run from the repository root):
+  python prototypes/navigation/planner_v2.py --mode synthetic
+  python prototypes/navigation/planner_v2.py --mode real \
+      --elevation data/processed/elevation.npy \
+      --meta data/processed/terrain_meta.json \
+      --start 250 50 --goal 250 450
+
+The real mode requires an existing DEM-derived, 2D elevation .npy and
+metadata in metric pixel units. No NASA data is bundled with this script.
+"""
+
+import argparse
+import heapq
+import json
+from pathlib import Path
+
+import matplotlib
+matplotlib.use("Agg")  # Save charts without requiring a desktop window.
+import matplotlib.pyplot as plt
+import numpy as np
+
+MOVES = [(dr, dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1) if dr or dc]
+
+
+def load_surface(args):
+    if args.mode == "synthetic":
+        n, dx, dy = 100, 2.0, 2.0
+        r, c = np.mgrid[0:n, 0:n]
+        elevation = 24.0 * np.exp(-(((c - 50) / 18) ** 2 + ((r - 50) / 15) ** 2))
+        meta = {
+            "dx_m": dx, "dy_m": dy, "nodata": None,
+            "source": "Synthetic Gaussian hill (not NASA)",
+            "crs": None,
+        }
+        return elevation, meta, "SYNTHETIC_TEST_TERRAIN_NOT_NASA", (50, 5), (50, 94)
+
+    if not args.elevation or not args.meta:
+        raise ValueError("Real mode requires both --elevation and --meta")
+    if not args.elevation.is_file() or not args.meta.is_file():
+        raise FileNotFoundError("DEM or metadata file not found. Check --elevation and --meta paths.")
+    elevation = np.load(args.elevation, allow_pickle=False)
+    meta = json.loads(args.meta.read_text(encoding="utf-8"))
+    if elevation.ndim != 2 or not np.issubdtype(elevation.dtype, np.number):
+        raise ValueError("elevation.npy must contain a numeric 2D array")
+    if "cell_size_m" in meta:
+        meta.setdefault("dx_m", meta["cell_size_m"])
+        meta.setdefault("dy_m", meta["cell_size_m"])
+    if "dx_m" not in meta or "dy_m" not in meta:
+        raise ValueError("Metadata needs dx_m and dy_m (metres per pixel), or cell_size_m")
+    dx, dy = float(meta["dx_m"]), float(meta["dy_m"])
+    if not np.isfinite(dx) or not np.isfinite(dy) or dx <= 0 or dy <= 0:
+        raise ValueError("Pixel dimensions must be positive, finite metres")
+    elevation = elevation.astype(np.float64)
+    start = tuple(args.start) if args.start is not None else (elevation.shape[0] // 2, elevation.shape[1] // 10)
+    goal = tuple(args.goal) if args.goal is not None else (elevation.shape[0] // 2, elevation.shape[1] * 9 // 10)
+    return elevation, meta, "USER_SUPPLIED_DEM_SOURCE_VERIFY_METADATA", start, goal
+
+
+def make_risk(elevation, meta, mask_path=None):
+    dx = float(meta["dx_m"])
+    dy = float(meta["dy_m"])
+    valid = np.isfinite(elevation)
+    nodata = meta.get("nodata")
+    if nodata is not None:
+        if np.isnan(float(nodata)):
+            valid &= ~np.isnan(elevation)
+        else:
+            valid &= elevation != float(nodata)
+    if mask_path is not None:
+        extra = np.load(mask_path, allow_pickle=False)
+        if extra.shape != elevation.shape:
+            raise ValueError("valid_mask.npy and elevation.npy must have identical dimensions")
+        valid &= extra.astype(bool)
+
+    clean_z = elevation.copy()
+    clean_z[~valid] = np.nan
+    dz_dr, dz_dc = np.gradient(clean_z, dy, dx)
+    slope = np.degrees(np.arctan(np.hypot(dz_dc, dz_dr)))
+    valid &= np.isfinite(slope)   # Exclude NoData neighbors, avoiding fake steep edges.
+    slope[~valid] = np.nan
+    risk = np.full(elevation.shape, np.inf, dtype=np.float32)
+    # Illustration only: these are NOT NASA-approved astronaut slope limits.
+    risk[valid & (slope < 10)] = 1.0
+    risk[valid & (slope >= 10) & (slope < 20)] = 3.0
+    risk[valid & (slope >= 20)] = 10.0
+    return slope, risk, valid
+
+
+def astar(weights, start, goal, dx, dy):
+    rows, cols = weights.shape
+
+    def valid(node):
+        r, c = node
+        return 0 <= r < rows and 0 <= c < cols and np.isfinite(weights[r, c])
+
+    if not valid(start) or not valid(goal):
+        raise ValueError(f"Start {start} or goal {goal} is invalid or outside the DEM. Choose valid row/col cells.")
+
+    def heuristic(node):
+        return float(np.hypot((goal[0] - node[0]) * dy, (goal[1] - node[1]) * dx))
+
+    frontier = [(heuristic(start), 0.0, start)]
+    best = {start: 0.0}
+    parent = {}
+    while frontier:
+        _, g, node = heapq.heappop(frontier)
+        if g > best[node] + 1e-9:
+            continue
+        if node == goal:
+            path = [node]
+            while path[-1] != start:
+                path.append(parent[path[-1]])
+            return path[::-1]
+        for dr, dc in MOVES:
+            nr, nc = node[0] + dr, node[1] + dc
+            next_node = (nr, nc)
+            if not valid(next_node):
+                continue
+            # A diagonal step may not sneak through the corner of two blocked cells.
+            if dr and dc and (not valid((node[0] + dr, node[1])) or not valid((node[0], node[1] + dc))):
+                continue
+            step_m = float(np.hypot(dr * dy, dc * dx))
+            ng = g + step_m * float((weights[node] + weights[next_node]) / 2.0)
+            if ng < best.get(next_node, float("inf")):
+                best[next_node] = ng
+                parent[next_node] = node
+                heapq.heappush(frontier, (ng + heuristic(next_node), ng, next_node))
+    raise RuntimeError("No path: choose different start/goal or inspect the DEM NoData mask.")
+
+
+def route_stats(path, elevation, slope, dx, dy):
+    p = np.asarray(path, dtype=int)
+    r, c = p[:, 0], p[:, 1]
+    steps = np.diff(p, axis=0)
+    distance = float(np.hypot(steps[:, 0] * dy, steps[:, 1] * dx).sum())
+    heights = elevation[r, c]
+    slopes = slope[r, c]
+    return {
+        "points_rc": p.tolist(),
+        "distance_m": round(distance, 2),
+        "max_slope_deg": round(float(np.max(slopes)), 2),
+        "mean_slope_deg": round(float(np.mean(slopes)), 2),
+        "high_slope_cells": int(np.sum(slopes >= 20)),
+        "elevation_gain_m": round(float(np.maximum(np.diff(heights), 0).sum()), 2),
+    }
+
+
+def strict_grid(arr, valid, decimals=2):
+    """Convert NumPy array to a JSON-compliant matrix (NoData -> null)."""
+    clean = np.round(arr.astype(np.float64), decimals).astype(object)
+    clean[~valid] = None
+    return clean.tolist()
+
+
+def main():
+    parser = argparse.ArgumentParser(description="MarsEye A*: synthetic or real Mars DEM")
+    parser.add_argument("--mode", choices=("synthetic", "real"), default="synthetic")
+    parser.add_argument("--elevation", type=Path, help="Path to cropped elevation.npy for real mode")
+    parser.add_argument("--meta", type=Path, help="Path to terrain_meta.json for real mode")
+    parser.add_argument("--mask", type=Path, help="Optional valid_mask.npy (True means a valid DEM pixel)")
+    parser.add_argument("--start", nargs=2, type=int, metavar=("ROW", "COL"))
+    parser.add_argument("--goal", nargs=2, type=int, metavar=("ROW", "COL"))
+    parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parent / "output_v2")
+    parser.add_argument("--skip-terrain-json", action="store_true", help="Useful for very large DEM grids")
+    args = parser.parse_args()
+
+    elevation, meta, data_type, default_start, default_goal = load_surface(args)
+    start = tuple(args.start) if args.start is not None else default_start
+    goal = tuple(args.goal) if args.goal is not None else default_goal
+    dx, dy = float(meta["dx_m"]), float(meta["dy_m"])
+    slope, risk, valid = make_risk(elevation, meta, args.mask)
+    shortest = astar(np.where(valid, 1.0, np.inf), start, goal, dx, dy)
+    safer = astar(risk, start, goal, dx, dy)
+
+    output = args.output
+    output.mkdir(parents=True, exist_ok=True)
+    result = {
+        "data_type": data_type,
+        "grid_shape": list(elevation.shape),
+        "cell_size_m": dx if abs(dx - dy) < 1e-8 else None,
+        "dx_m": dx,
+        "dy_m": dy,
+        "start_rc": list(start),
+        "goal_rc": list(goal),
+        "routes": {
+            "shortest": route_stats(shortest, elevation, slope, dx, dy),
+            "risk_aware": route_stats(safer, elevation, slope, dx, dy),
+        },
+    }
+    (output / "routes.json").write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
+    np.save(output / "slope.npy", slope)
+    np.save(output / "risk.npy", risk)
+    np.save(output / "valid_mask.npy", valid)
+
+    if not args.skip_terrain_json:
+        terrain_data = {
+            "data_type": data_type,
+            "grid_shape": list(elevation.shape),
+            "cell_size_m": result["cell_size_m"],
+            "dx_m": dx,
+            "dy_m": dy,
+            "elevation_m": strict_grid(elevation, valid),
+            "slope_deg": strict_grid(slope, valid),
+            "source_metadata": meta,
+        }
+        (output / "terrain.json").write_text(
+            json.dumps(terrain_data, separators=(",", ":"), allow_nan=False), encoding="utf-8"
+        )
+
+    fig, ax = plt.subplots(figsize=(10, 7))
+    im = ax.imshow(np.ma.masked_invalid(slope), cmap="YlOrRd", origin="upper")
+    fig.colorbar(im, ax=ax, label="Slope (degrees)")
+    for path, color, label in ((shortest, "dodgerblue", "Shortest"), (safer, "lime", "Risk-aware")):
+        p = np.asarray(path)
+        ax.plot(p[:, 1], p[:, 0], color=color, linewidth=2.2, label=label)
+    ax.scatter([start[1], goal[1]], [start[0], goal[0]], c="black", s=45, zorder=5)
+    ax.set(title=f"MarsEye A* — {data_type}", xlabel="Column", ylabel="Row")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output / "routes_preview.png", dpi=150)
+    plt.close(fig)
+
+    print("Output directory:", output.resolve())
+    print("Terrain grid:", elevation.shape, "pixel size:", (dx, dy), "m")
+    for key in ("shortest", "risk_aware"):
+        item = result["routes"][key]
+        print(f"{key}: {item['distance_m']} m, max slope {item['max_slope_deg']} deg, "
+              f"mean slope {item['mean_slope_deg']} deg")
+    print("NOTE: slope thresholds are illustrative, not certified EVA safety limits.")
+
+
+if __name__ == "__main__":
+    main()
