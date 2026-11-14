@@ -218,3 +218,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node / React
+node_modules/
+.next/
+
+# Large map data
+*.tif
+*.tiff
+*.img
+*.dem
+
+# Python virtual environments and caches
+.venv/
+**/__pycache__/
