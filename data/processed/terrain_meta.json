@@ -1,0 +1,41 @@
+{
+  "region": "Gale Crater, Mars",
+  "source": "User-provided Gale GeoTIFF; confirm NASA/USGS source product ID",
+  "source_filename": "1kmistenilenyer.tif",
+  "source_crs": "ESRI:104905",
+  "source_crs_wkt": "GEOGCS[\"GCS_Mars_2000\",DATUM[\"D_Mars_2000\",SPHEROID[\"Mars_2000_IAU_IAG\",3396190,169.894447223612,AUTHORITY[\"ESRI\",\"107905\"]],AUTHORITY[\"ESRI\",\"106905\"]],PRIMEM[\"Reference_Meridian\",0,AUTHORITY[\"ESRI\",\"108900\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST],AUTHORITY[\"ESRI\",\"104905\"]]",
+  "crs": "ESRI:104905",
+  "longitude_convention": "East positive",
+  "grid_shape": [
+    198,
+    200
+  ],
+  "dx_m": 5.0033693,
+  "dy_m": 4.9968054,
+  "nodata": null,
+  "invalid_cells_stored_as": "NaN",
+  "elevation_unit": "m",
+  "bounds_degrees": {
+    "west_lon": 137.5195376879813,
+    "east_lon": 137.53647577525885,
+    "south_lat": -4.701044655528354,
+    "north_lat": -4.684157180065381
+  },
+  "center_lon": 137.52800673162008,
+  "center_lat": -4.6926009177968675,
+  "affine_transform_gcs_mars_2000": [
+    8.469043638773353e-05,
+    0.0,
+    137.5195376879813,
+    0.0,
+    -8.529028011602204e-05,
+    -4.684157180065381
+  ],
+  "grid_axis_convention": "row increases southward, column increases eastward; pixels are cell-centred",
+  "metric_scaling_note": "Approximate local metres derived from Mars 2000 ellipsoid at pilot-area centre; original Mars longitude/latitude grid preserved",
+  "original_grid_shape": [
+    1001,
+    1004
+  ],
+  "source_nodata": -3.4028230607370965e+38
+}
