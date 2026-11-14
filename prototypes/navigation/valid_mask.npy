@@ -1,0 +1,107 @@
+"""Turn a georeferenced Gale-crater DEM GeoTIFF into MarsEye's navigation inputs.
+
+Run from repository root (requires numpy, rasterio):
+  python scripts/prepare_gale_dem.py --input 1kmistenilenyer.tif --out data/processed --resolution 5
+
+CRS/geo bounds are preserved; dx/dy are local ellipsoidal metres per raster cell,
+calculated using the Mars 2000 reference ellipsoid. NOT a coordinate reprojection.
+"""
+import argparse
+import json
+import math
+from pathlib import Path
+
+import numpy as np
+import rasterio
+from rasterio.enums import Resampling
+from rasterio.transform import Affine
+
+MARS_A = 3396190.0  # m, Mars_2000_IAU_IAG ellipsoid
+MARS_INV_F = 169.894447223612
+MARS_B = MARS_A * (1.0 - 1.0 / MARS_INV_F)
+
+
+def local_m_per_degree(lat_deg):
+    """Local metric approximation for GCS_Mars_2000 planetographic latitude."""
+    lat = math.radians(lat_deg)
+    e2 = 1.0 - (MARS_B / MARS_A) ** 2
+    k = math.sqrt(1.0 - e2 * math.sin(lat) ** 2)
+    N = MARS_A / k
+    M = MARS_A * (1.0 - e2) / (k ** 3)
+    return math.pi / 180 * N * math.cos(lat), math.pi / 180 * M
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument('--input', type=Path, required=True)
+    p.add_argument('--out', type=Path, default=Path('data/processed'))
+    p.add_argument('--resolution', type=float, default=5.0, help='Target grid spacing in metres (approximate)')
+    args = p.parse_args()
+    if args.resolution <= 0:
+        raise ValueError('Resolution must be positive')
+    args.out.mkdir(parents=True, exist_ok=True)
+    with rasterio.open(args.input) as src:
+        if src.count != 1:
+            raise ValueError('Expected a single-band DEM, not optical RGB')
+        if not src.crs or not src.crs.is_geographic:
+            raise ValueError('This version expects a geographic Mars CRS DEM in degrees')
+        if not (-90 <= src.bounds.bottom <= 90 and -90 <= src.bounds.top <= 90):
+            raise ValueError('Raster bounds do not resemble latitude/longitude')
+        if abs(src.transform.b)>1e-10 or abs(src.transform.d)>1e-10:
+            raise ValueError('Rotated grid detected; reproject to a north-up Mars raster first')
+        center_lat = (src.bounds.bottom+src.bounds.top)/2
+        center_lon = (src.bounds.left+src.bounds.right)/2
+        meters_lon,meters_lat = local_m_per_degree(center_lat)
+        raw_dx=abs(src.transform.a)*meters_lon
+        raw_dy=abs(src.transform.e)*meters_lat
+        # Preserve physical rectangle and aim near requested metre resolution.
+        width=max(2,round(src.width * raw_dx/args.resolution))
+        height=max(2,round(src.height * raw_dy/args.resolution))
+        scale_x=src.width/width
+        scale_y=src.height/height
+        new_transform = src.transform * Affine.scale(scale_x,scale_y)
+        data=src.read(1,out_shape=(height,width),masked=True,resampling=Resampling.bilinear)
+        elevation=np.asarray(data.filled(np.nan),dtype=np.float32)
+        valid=(~np.ma.getmaskarray(data)) & np.isfinite(elevation)
+        elevation[~valid]=np.nan
+        dx_m=raw_dx*scale_x
+        dy_m=raw_dy*scale_y
+        meta={
+            'region':'Gale Crater, Mars',
+            'source':'User-provided Gale GeoTIFF; confirm NASA/USGS source product ID',
+            'source_filename':args.input.name,
+            'source_crs':src.crs.to_string(),
+            'source_crs_wkt':src.crs.to_wkt(),
+            'crs':src.crs.to_string(),
+            'longitude_convention':'East positive',
+            'grid_shape':[height,width],
+            'dx_m':round(dx_m,7),
+            'dy_m':round(dy_m,7),
+            'nodata':None,
+            'invalid_cells_stored_as':'NaN',
+            'elevation_unit':'m',
+            'bounds_degrees':{
+                'west_lon':src.bounds.left,
+                'east_lon':src.bounds.right,
+                'south_lat':src.bounds.bottom,
+                'north_lat':src.bounds.top,
+            },
+            'center_lon':center_lon,'center_lat':center_lat,
+            'affine_transform_gcs_mars_2000':[new_transform.a,new_transform.b,new_transform.c,
+                                                new_transform.d,new_transform.e,new_transform.f],
+            'grid_axis_convention':'row increases southward, column increases eastward; pixels are cell-centred',
+            'metric_scaling_note':'Approximate local metres derived from Mars 2000 ellipsoid at pilot-area centre; original Mars longitude/latitude grid preserved',
+            'original_grid_shape':[src.height,src.width],
+            'source_nodata':src.nodata,
+        }
+        np.save(args.out/'elevation.npy',elevation)
+        np.save(args.out/'valid_mask.npy',valid)
+        (args.out/'terrain_meta.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf-8')
+        print('Prepared Gale terrain:',height,'rows x',width,'columns')
+        print('Metric pixel size:',round(dx_m,3),'x',round(dy_m,3),'m')
+        print('Valid pixels:',int(valid.sum()),'/',valid.size)
+        print('Elevation range:',float(np.nanmin(elevation)),float(np.nanmax(elevation)),'m')
+        print('Saved:',args.out.resolve())
+
+if __name__=='__main__':
+    main()
