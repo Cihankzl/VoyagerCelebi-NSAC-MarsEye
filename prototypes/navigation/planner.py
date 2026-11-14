@@ -78,6 +78,24 @@ result = {
 }
 (OUT / 'routes.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
 
+
+# Export synthetic terrain for the 3D frontend
+terrain_data = {
+    "data_type": "SYNTHETIC_TEST_TERRAIN_NOT_NASA",
+    "grid_shape": [N, N],
+    "cell_size_m": CELL_M,
+    "elevation_m": np.round(elevation, 2).tolist(),
+    "slope_deg": np.round(slope, 2).tolist()
+}
+
+(OUT / "terrain.json").write_text(
+    json.dumps(terrain_data),
+    encoding="utf-8"
+)
+
+print("Terrain exported:", OUT / "terrain.json")
+
+
 fig, ax = plt.subplots(figsize=(10, 7))
 im = ax.imshow(slope, origin='upper', cmap='YlOrRd')
 fig.colorbar(im, ax=ax, label='Slope (degrees)')
