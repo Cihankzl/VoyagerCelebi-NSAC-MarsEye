@@ -159,16 +159,23 @@ def run_real(output: Path) -> tuple[dict, int]:
             for kind in ("shortest_feasible", "risk_aware"):
                 r = response["routes"][kind]
                 rows_out.append({
-                    "scenario": name, "profile": profile, "route_type": kind,
-                    "start_rc": json.dumps(start), "goal_rc": json.dumps(goal),
-                    "status": r["status"], "distance_m": r.get("distance_m"),
-                    "weighted_cost_m_equiv": r.get("weighted_cost_m_equiv"),
-                    "max_slope_deg": r.get("max_slope_deg"),
-                    "max_edge_grade_deg": r.get("max_edge_grade_deg"),
-                    "elevation_gain_m": r.get("elevation_gain_m"),
-                    "runtime_ms": r.get("runtime_ms"),
-                    "validation": "FAIL" if validation else "PASS",
-                })
+                        "scenario": name,
+                     "profile": profile,
+                        "route_type": kind,
+                        "start_rc": json.dumps(start),
+                        "goal_rc": json.dumps(goal),
+                        "status": r["status"],
+                        "distance_m": r.get("distance_m"),
+                        "mean_slope_deg": r.get("mean_slope_deg"),
+                        "max_slope_deg": r.get("max_slope_deg"),
+                        "max_edge_grade_deg": r.get("max_edge_grade_deg"),
+                        "mean_roughness_m": r.get("mean_roughness_m"),
+                        "elevation_gain_m": r.get("elevation_gain_m"),
+                        "elevation_loss_m": r.get("elevation_loss_m"),
+                        "weighted_cost_m_equiv": r.get("weighted_cost_m_equiv"),
+                        "runtime_ms": r.get("runtime_ms"),
+                        "validation": "FAIL" if validation else "PASS",
+                    })
             elapsed = time.perf_counter() - t0
             short = response["routes"]["shortest_feasible"]
             risk = response["routes"]["risk_aware"]
