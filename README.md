@@ -1,2 +1,2 @@
-# voyager-nasa-apps-chalange-project
-for voyager nasa apps chalange project
+# voyager-nasa-apps-challenge-project
+for voyager nasa apps challenge project
