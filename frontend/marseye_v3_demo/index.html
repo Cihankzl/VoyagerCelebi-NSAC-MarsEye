@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MarsEye V3 — Gale 3D Navigation</title>
+<style>
+  :root { font-family: Inter, "Segoe UI", system-ui, sans-serif; color: #edf2fb; background: #0c111a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .app { display: grid; grid-template-columns: minmax(0,1fr) 340px; min-height: 100vh; }
+  #viewport { position: relative; min-height: 100vh; overflow: hidden; }
+  canvas { display: block; }
+  .hero { position: absolute; top: 28px; left: 30px; pointer-events: none; z-index: 1; }
+  .brand { text-transform: uppercase; letter-spacing: .26em; font-size: 11px; color: #78c5d4; font-weight: 700; }
+  h1 { font-size: 38px; margin: 7px 0 2px; line-height: 1; letter-spacing: -.035em; }
+  .subtitle { color: #b3c4d6; font-size: 12px; margin-top: 10px; }
+  .pill { display: inline-block; border: 1px solid #46586e; border-radius: 99px; color:#c2d1db; font-size:11px; padding: 5px 9px; margin-top: 12px; background: #101c2cbb; }
+  .stage-note { position: absolute; bottom: 20px; left: 26px; background: #0c1623d9; border: 1px solid #273e54; border-radius: 10px; color:#c7d4e2; padding: 11px 13px; font-size: 12px; max-width: 550px; line-height: 1.5; }
+  .status { position: absolute; top: 22px; right: 22px; background: #111e2dda; border:1px solid #304258; padding: 9px 12px; border-radius:8px; font-size:12px; max-width: 270px; text-align:right; }
+  .status.error { color: #ffaaa5; white-space: pre-wrap; }
+  aside { border-left: 1px solid #2c4056; background: #141e2a; padding: 25px 24px 34px; }
+  .section { padding-bottom: 23px; border-bottom: 1px solid #2b3c50; margin-bottom: 22px; }
+  h2 { margin: 0 0 15px; font-size: 12px; text-transform: uppercase; letter-spacing: .13em; color: #9bafc4; }
+  .toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .toggle button, select { border: 1px solid #3a4d62; border-radius: 10px; padding: 12px 9px; background: #1b2938; color: #e3eef6; cursor: pointer; font-size: 14px; font-weight: 650; }
+  .toggle button[aria-pressed="true"] { color: #08191d; border-color: #68d8c5; background: #68d8c5; }
+  .toggle button:focus-visible, select:focus-visible { outline: 2px solid #f6ae78; outline-offset: 2px; }
+  .desc { color: #abbacb; font-size: 12px; line-height: 1.6; min-height: 37px; margin-top: 11px; }
+  .metric { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #2a3a4b; font-size: 13px; }
+  .metric span { color: #9cb0c4; }
+  .metric strong { color: #f0f5fb; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .tiny { color: #91a5ba; font-size: 11px; line-height: 1.6; margin-top: 12px; }
+  .control { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 9px 0; font-size: 13px; color: #d8e4f0; }
+  input { accent-color:#68d8c5; width: 17px; height: 17px; }
+  .select-wrap { display: grid; gap: 6px; font-size:12px; color:#aebfcf; }
+  select { width: 100%; text-align: left; padding-left:11px; }
+  .legend { display:flex; align-items:center; gap: 8px; color:#a7b7c9; font-size: 11px; margin-top:10px; }
+  .legend i { width:16px; height:4px; border-radius:4px; display:inline-block; }
+  .info { font-size: 12px; line-height:1.65; color:#bed0de; }
+  .warning { color:#e7b58a; }
+  @media(max-width:850px){ .app{grid-template-columns:1fr} #viewport{min-height:58vh}aside{border-left:0; border-top:1px solid #2b3c50} h1{font-size:32px}.hero{left:17px;top:19px}.stage-note{left:15px;right:15px;bottom:10px;font-size:11px}.status{top:20px;right:10px;max-width:180px;font-size:10px} }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<main class="app">
+  <section id="viewport" aria-label="3D Mars terrain">
+    <div class="hero"><div class="brand">Voyager · Space Apps 2026</div><h1>MarsEye <span style="font-size:15px;color:#9badbf;letter-spacing:0;">V3</span></h1><div class="subtitle">GALE CRATER / MULTI-CRITERIA PATH PLANNING</div><span class="pill">Real terrain DEM • Experimental route profiles</span></div>
+    <div id="status" class="status" role="status">Veriler yükleniyor...</div>
+    <div class="stage-note">Sürükle: döndür &nbsp;•&nbsp; Sağ tık: kaydır &nbsp;•&nbsp; Tekerlek: yakınlaştır.<br><span id="dataNote">Rotalar Python A* ile önceden hesaplandı.</span></div>
+  </section>
+  <aside>
+    <div class="section"><h2>Navigation mode</h2><div class="toggle" role="group" aria-label="Hareket profili">
+      <button id="mode-rover" type="button" aria-pressed="true">Rover</button>
+      <button id="mode-astronaut" type="button" aria-pressed="false">Astronaut</button>
+    </div><div class="desc" id="mode-desc">Rover için yüzey pürüzlülüğünden kaçınma daha yüksek ağırlıklı.</div></div>
+    <div class="section"><h2>Route analytics</h2><div id="metrics">Hesaplanan rota yükleniyor…</div><div class="tiny" id="limitText"></div></div>
+    <div class="section"><h2>Terrain layers</h2>
+      <div class="select-wrap"><label for="layer">Surface visualization</label><select id="layer"><option value="terrain">Elevation shading</option><option value="slope">Slope risk</option><option value="roughness">DEM roughness</option></select></div>
+      <label class="control"><input id="showShortest" type="checkbox" /> Shortest reference path</label>
+      <label class="control"><input id="showMarkers" type="checkbox" checked /> Start and goal markers</label>
+      <div id="layerNote" class="tiny">Arazi renkleri görsel temsildir.</div>
+      <div class="legend"><i style="background:#61c8ff"></i> Shortest <i style="background:#42d5bd"></i> Rover <i style="background:#ad86ff"></i> Astronaut</div>
+    </div>
+    <div><h2>Data provenance</h2><div class="info" id="source"></div><p class="tiny warning">Eğim sınırları ve maliyet ağırlıkları deneysel. Bu demo, operasyonel olarak onaylanmış Mars EVA veya rover rotası değildir. Küçük kayalar, gevşek zemin, sıcaklık ve radyasyon henüz modele dahil değildir.</p></div>
+  </aside>
+</main>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
