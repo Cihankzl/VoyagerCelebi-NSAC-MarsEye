@@ -1,0 +1,17 @@
+# MarsEye — Multi-Stop Mission Planning Module
+
+Bu modül, Gale Krateri (`198 × 200` DEM, `5 m` hücre aralığı) üzerinde sabit bir başlangıç (`A`), sabit bir bitiş (`B`) ve `1–5` bilimsel hedef (`S1..Sn`) arasındaki **en uygun ziyaret sırasını** belirler.
+
+## Özellikler
+- **Manual & Optimized Modlar:** Kullanıcının belirlediği sırayı veya tüm permütasyonlar arasından en düşük maliyetli sırayı hesaplar.
+- **Yönlü Maliyet Matrisi & Önbellekleme:** Tırmanış/iniş asimetrisini korumak için `(from_id, to_id)` çiftlerini ayrı ayrı sorgular ve önbelleğe alır.
+- **Çift Optimizasyon Kriteri:** `shortest_feasible` (toplam mesafe) veya `risk_aware` (ağırlıklı maliyet).
+- **Temiz Rota Birleştirme:** Ardışık rota parçaları (`legs`) birleştirilirken ortak ara düğüm hücresi `points_rc` listesine iki kez eklenmez.
+
+## Çalıştırma ve Testler
+```bash
+# Örnek mission_route.json üretimi
+python mission_planner.py
+
+# Tüm birim testlerin çalıştırılması (7 senaryo)
+python test_mission_planner.py
