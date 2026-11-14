@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0.0",
+  "region": "Pahrump Hills, Gale Crater, Mars",
+  "source": {
+    "mission": "Mars Reconnaissance Orbiter",
+    "instrument": "HiRISE",
+    "product_id": "DTEEC_040770_1755_039280_1755_A01",
+    "stereo_pair": [
+      "ESP_040770_1755",
+      "ESP_039280_1755"
+    ],
+    "source_file": "DTEEC_040770_1755_039280_1755_A01.IMG",
+    "source_sha256": "143708C00B11765DA8DFE3ABA7CE894E7CC89314B3FD406DF9FEFB9FDA9CBA26",
+    "source_url": "https://www.uahirise.org/PDS/DTM/ESP/ORB_040700_040799/ESP_040770_1755_ESP_039280_1755/DTEEC_040770_1755_039280_1755_A01.IMG",
+    "native_resolution_m_per_pixel": 1.0117571650087,
+    "vertical_reference": "Mars 2000 / MOLA areoid"
+  },
+  "grid": {
+    "shape": [
+      500,
+      500
+    ],
+    "row_order": "north_to_south",
+    "column_order": "west_to_east",
+    "dtype": "float32",
+    "elevation_unit": "m",
+    "nodata_in_geotiff": -9999.0,
+    "nodata_in_elevation_npy": "NaN",
+    "valid_mask_dtype": "bool",
+    "dx_projected_m": 2.0066789948987873,
+    "dy_projected_m": 1.9999999931104249,
+    "dx_ground_m_at_center_latitude": 2.0000000080860363,
+    "dy_ground_m": 1.9999999931104249,
+    "nominal_ground_sampling_m": 2.0,
+    "gdal_geotransform": [
+      -1153.6914214808091,
+      2.0066789948987873,
+      0.0,
+      -276668.48562070227,
+      0.0,
+      -1.9999999931104249
+    ]
+  },
+  "crs": {
+    "name": "EQUIRECTANGULAR MARS",
+    "authority": null,
+    "wkt": "PROJCS[\"EQUIRECTANGULAR MARS\",GEOGCS[\"GCS_MARS\",DATUM[\"D_MARS\",SPHEROID[\"MARS_localRadius\",3396190,0]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",0],PARAMETER[\"central_meridian\",137.39],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+    "proj4": "+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=137.39 +x_0=0 +y_0=0 +R=3396190 +units=m +no_defs",
+    "planet": "Mars",
+    "longitude_direction": "east_positive",
+    "latitude_type": "planetocentric",
+    "radius_m": 3396190.0
+  },
+  "bounds": {
+    "projected_m": {
+      "xmin": -1153.6914214808091,
+      "ymin": -277668.4856172575,
+      "xmax": -150.35192403141548,
+      "ymax": -276668.48562070227
+    },
+    "geographic_degrees": {
+      "north": -4.6675646976,
+      "south": -4.6844353024,
+      "west": 137.3705365279,
+      "east": 137.3874634721,
+      "center": {
+        "latitude": -4.676,
+        "longitude_east": 137.379
+      }
+    }
+  },
+  "statistics": {
+    "minimum_elevation_m": -4445.27978515625,
+    "maximum_elevation_m": -4366.0009765625,
+    "mean_elevation_m": -4403.6123046875,
+    "valid_cell_count": 250000,
+    "invalid_cell_count": 0,
+    "valid_percent": 100.0
+  },
+  "processing": {
+    "date": "2026-11-14",
+    "resampling": "bilinear",
+    "target_shape": [
+      500,
+      500
+    ],
+    "software": "GDAL GDAL 3.13.3 \"Iowa City\", released 2026/08/13"
+  },
+  "files": {
+    "geotiff": "gale_dem_1km.tif",
+    "elevation": "elevation.npy",
+    "valid_mask": "valid_mask.npy",
+    "preview": "elevation_preview.png"
+  }
+}
