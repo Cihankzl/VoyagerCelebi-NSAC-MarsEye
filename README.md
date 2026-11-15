@@ -1,11 +1,10 @@
 # MarsEye
 
 **3D mission planning and navigation for Gale Crater, Mars, built on real NASA orbital data.**
-NASA Space Apps Challenge 2026 · Challenge: <challenge adı> · Team Voyager
+NASA Space Apps Challenge 2026 · Challenge: Interplanetary Survival Guide: Martian Map · Team Voyager
 
 🔗 **Live demo:** https://cihankzl.github.io/VoyagerCelebi-NSAC-MarsEye/frontend/
 🎬 **30-second demo video:** <YouTube linki>
-📄 **Space Apps project page:** <spaceappschallenge.org proje sayfası linki>
 
 ![MarsEye demo](docs/demo.gif)
 
