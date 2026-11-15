@@ -34,11 +34,15 @@ class Profile:
     roughness_weight: float
     ascent_weight: float
     external_risk_weight: float = 6.0
+    # Thermal (THEMIS night-time brightness temperature) penalty weight.
+    # Applied only when the engine is given a thermal layer; colder cells
+    # ("cold traps", low thermal inertia proxy) cost more. EXPERIMENTAL.
+    thermal_weight: float = 1.0
 
 
 PROFILES = {
-    "rover": Profile(20.0, 20.0, 2.0, 4.0, 0.8),
-    "astronaut": Profile(25.0, 25.0, 2.7, 1.0, 4.0),
+    "rover": Profile(20.0, 20.0, 2.0, 4.0, 0.8, thermal_weight=1.2),
+    "astronaut": Profile(25.0, 25.0, 2.7, 1.0, 4.0, thermal_weight=1.0),
 }
 
 
@@ -102,7 +106,11 @@ def load_risk(path: Path | None, shape: tuple[int, int]) -> np.ndarray | None:
 
 def risk_cost_of_step(profile: Profile, slope_a: float, slope_b: float,
                       rough_a: float, rough_b: float, z_a: float, z_b: float,
-                      step_m: float, risk_a: float | None, risk_b: float | None) -> float:
+                      step_m: float, risk_a: float | None, risk_b: float | None,
+                      cold_a: float | None = None, cold_b: float | None = None) -> float:
+    """Generalized step cost. cold_a/cold_b are optional 0..1 thermal cold indices
+    (0 = warmest cell of the pilot area, 1 = coldest). Without a thermal layer the
+    cost is identical to the original V4 model."""
     ascent = max(0.0, z_b - z_a)
     if risk_a is not None:
         # External risk already contains the terrain components; do not double count them.
@@ -111,13 +119,28 @@ def risk_cost_of_step(profile: Profile, slope_a: float, slope_b: float,
         avg_slope = 0.5 * (slope_a + slope_b)
         avg_rough = 0.5 * (rough_a + rough_b)
         penalty = profile.slope_weight * (avg_slope / 15.0) ** 2 + profile.roughness_weight * (avg_rough / 1.0)
+    if cold_a is not None and cold_b is not None:
+        # Thermal is a separate physical input, so it is added in both risk modes.
+        penalty = penalty + profile.thermal_weight * 0.5 * (cold_a + cold_b)
     return step_m * (1.0 + penalty) + profile.ascent_weight * ascent
+
+
+def load_thermal(path: Path | None, shape: tuple[int, int]) -> np.ndarray | None:
+    """Load a (rows, cols) brightness-temperature grid in Kelvin aligned to the DEM."""
+    if path is None or not Path(path).is_file():
+        return None
+    arr = np.load(path, allow_pickle=False).astype(np.float64)
+    if arr.shape != shape:
+        raise ValueError(f"Thermal grid {path} shape {arr.shape} != terrain {shape}")
+    arr[(arr <= -9000) | ~np.isfinite(arr)] = np.nan  # never treat -9999 as a temperature
+    return arr
 
 
 class RouteEngine:
     def __init__(self, elevation: np.ndarray, meta: dict,
                  mask: np.ndarray | None = None,
-                 risk_maps: dict[str, np.ndarray | None] | None = None):
+                 risk_maps: dict[str, np.ndarray | None] | None = None,
+                 thermal_k: np.ndarray | None = None):
         self.elevation = np.asarray(elevation, dtype=np.float64)
         self.meta = dict(meta)
         self.dx = float(self.meta["dx_m"])
@@ -133,10 +156,37 @@ class RouteEngine:
                 if np.any(np.isinf(risk)) or np.any(np.isfinite(risk) & ((risk < 0) | (risk > 1))):
                     raise ValueError(f"Risk map {name} must have 0..1 values or NaNs")
             self.risk_maps[name] = risk
+        # Optional thermal layer (Kelvin). cold_index: 0 warmest .. 1 coldest of the area.
+        self.thermal_k: np.ndarray | None = None
+        self.cold_index: np.ndarray | None = None
+        if thermal_k is not None:
+            t = np.asarray(thermal_k, dtype=np.float64).copy()
+            if t.shape != self.elevation.shape:
+                raise ValueError("Thermal grid shape differs from elevation")
+            t[(t <= -9000) | ~np.isfinite(t)] = np.nan
+            if np.isfinite(t).any():
+                lo, hi = float(np.nanmin(t)), float(np.nanmax(t))
+                cold = (hi - t) / (hi - lo) if hi > lo else np.zeros_like(t)
+                # Unknown temperature: neutral mid value, not a hidden block.
+                cold = np.where(np.isfinite(cold), np.clip(cold, 0.0, 1.0), 0.5)
+                self.thermal_k, self.cold_index = t, cold
+        self._table_cache: dict[str, Any] = {}
+
+    def step_cost(self, profile: Profile, a, b, step_m: float, risk: np.ndarray | None) -> float:
+        """Exact cost of one move a->b (used by A*, summaries and validation)."""
+        ra = float(risk[a]) if risk is not None and np.isfinite(risk[a]) else None
+        rb = float(risk[b]) if risk is not None and np.isfinite(risk[b]) else None
+        ca = float(self.cold_index[a]) if self.cold_index is not None else None
+        cb = float(self.cold_index[b]) if self.cold_index is not None else None
+        return risk_cost_of_step(profile, float(self.slope[a]), float(self.slope[b]),
+                                 float(self.roughness[a]), float(self.roughness[b]),
+                                 float(self.elevation[a]), float(self.elevation[b]), float(step_m),
+                                 ra, rb, ca, cb)
 
     @classmethod
     def from_files(cls, elevation: Path, meta: Path, mask: Path | None,
-                   risk_rover: Path | None = None, risk_astronaut: Path | None = None):
+                   risk_rover: Path | None = None, risk_astronaut: Path | None = None,
+                   thermal: Path | None = None):
         data = np.load(elevation, allow_pickle=False)
         m = json.loads(meta.read_text(encoding="utf-8"))
         if "cell_size_m" in m:
@@ -145,7 +195,7 @@ class RouteEngine:
         vm = np.load(mask, allow_pickle=False) if mask is not None else None
         risks = {"rover": load_risk(risk_rover, data.shape),
                  "astronaut": load_risk(risk_astronaut, data.shape)}
-        return cls(data, m, vm, risks)
+        return cls(data, m, vm, risks, load_thermal(thermal, data.shape))
 
     def _legal_node(self, node, allowed):
         r, c = node
@@ -200,17 +250,77 @@ class RouteEngine:
                 if objective == "distance":
                     cost = step_m
                 else:
-                    ra = float(risk[node]) if risk is not None else None
-                    rb = float(risk[nxt]) if risk is not None else None
-                    cost = risk_cost_of_step(
-                        profile, float(self.slope[node]), float(self.slope[nxt]),
-                        float(self.roughness[node]), float(self.roughness[nxt]),
-                        float(self.elevation[node]), float(self.elevation[nxt]), step_m, ra, rb)
+                    cost = self.step_cost(profile, node, nxt, step_m, risk)
                 new_g = g + cost
                 if new_g + 1e-9 < best.get(nxt, math.inf):
                     best[nxt] = new_g
                     parent[nxt] = node
                     heapq.heappush(q, (new_g + heuristic(nxt), new_g, nxt))
+        return None, "no_path"
+
+    def _move_tables(self, profile_name: str, allowed, profile, risk):
+        """Precompute legal moves and both edge costs once per profile.
+
+        Exactly the same rules as _legal_edge / step_cost (8 neighbours, no corner
+        cutting, edge-grade limit), stored as plain lists so A* avoids per-edge
+        function calls. Cached for the engine's lifetime (engine data is immutable).
+        """
+        cached = self._table_cache.get(profile_name)
+        if cached is not None:
+            return cached
+        rows, cols = self.elevation.shape
+        neighbours: list[list[tuple[int, float, float]]] = [[] for _ in range(rows * cols)]
+        al = allowed.tolist()
+        for r in range(rows):
+            row_ok = al[r]
+            for c in range(cols):
+                if not row_ok[c]:
+                    continue
+                node = (r, c)
+                out = neighbours[r * cols + c]
+                for dr, dc in MOVES:
+                    nxt = (r + dr, c + dc)
+                    if not self._legal_edge(node, nxt, allowed, profile.max_edge_grade_deg):
+                        continue
+                    step_m = math.hypot(dr * self.dy, dc * self.dx)
+                    out.append((nxt[0] * cols + nxt[1], step_m, self.step_cost(profile, node, nxt, step_m, risk)))
+        self._table_cache[profile_name] = neighbours
+        return neighbours
+
+    def _astar_fast(self, neighbours, allowed, start, goal, objective):
+        """A* over precomputed tables; identical expansion order to _astar
+        (node index ordering == (row, col) tuple ordering)."""
+        if not self._legal_node(start, allowed) or not self._legal_node(goal, allowed):
+            return None, "blocked_endpoint"
+        if start == goal:
+            return [start], "found"
+        rows, cols = self.elevation.shape
+        dx, dy = self.dx, self.dy
+        gr, gc = goal
+        hypot = math.hypot
+        s_idx, g_idx = start[0] * cols + start[1], gr * cols + gc
+        use_dist = objective == "distance"
+        best = [math.inf] * (rows * cols)
+        parent = {}
+        best[s_idx] = 0.0
+        q = [(hypot((gr - start[0]) * dy, (gc - start[1]) * dx), 0.0, s_idx)]
+        pop, push = heapq.heappop, heapq.heappush
+        while q:
+            _, g, u = pop(q)
+            if g > best[u] + 1e-9:
+                continue
+            if u == g_idx:
+                path = [u]
+                while path[-1] != s_idx:
+                    path.append(parent[path[-1]])
+                return [divmod(i, cols) for i in path[::-1]], "found"
+            for v, step_m, risk_cost in neighbours[u]:
+                new_g = g + (step_m if use_dist else risk_cost)
+                if new_g + 1e-9 < best[v]:
+                    best[v] = new_g
+                    parent[v] = u
+                    vr, vc = divmod(v, cols)
+                    push(q, (new_g + hypot((gr - vr) * dy, (gc - vc) * dx), new_g, v))
         return None, "no_path"
 
     def _summarize(self, path, profile, risk, allowed, elapsed_ms, *, analysis_only=False):
@@ -225,11 +335,21 @@ class RouteEngine:
         rough = self.roughness[rr, cc]
         weighted_cost = 0.0
         for a, b, d in zip(path, path[1:], step_m):
-            weighted_cost += risk_cost_of_step(profile, float(self.slope[a]), float(self.slope[b]),
-                                               float(self.roughness[a]), float(self.roughness[b]),
-                                               float(self.elevation[a]), float(self.elevation[b]), float(d),
-                                               float(risk[a]) if risk is not None and np.isfinite(risk[a]) else None,
-                                               float(risk[b]) if risk is not None and np.isfinite(risk[b]) else None)
+            weighted_cost += self.step_cost(profile, a, b, float(d), risk)
+        if self.thermal_k is not None:
+            t = self.thermal_k[rr, cc]
+            t = t[np.isfinite(t)]
+        else:
+            t = np.array([])
+        thermal = {
+            "mean_temp_k": round(float(t.mean()), 2) if t.size else None,
+            "min_temp_k": round(float(t.min()), 2) if t.size else None,
+            "max_temp_k": round(float(t.max()), 2) if t.size else None,
+            "mean_temp_c": round(float(t.mean()) - 273.15, 2) if t.size else None,
+            "min_temp_c": round(float(t.min()) - 273.15, 2) if t.size else None,
+            "max_temp_c": round(float(t.max()) - 273.15, 2) if t.size else None,
+            "mean_cold_index_0_1": round(float(np.mean(self.cold_index[rr, cc])), 4) if self.cold_index is not None else None,
+        }
         metrics = {
             "status": "found",
             "points_rc": pts.tolist(),
@@ -244,6 +364,7 @@ class RouteEngine:
             "runtime_ms": round(float(elapsed_ms), 2),
             "mean_risk_score_0_1": round(float(np.nanmean(risk[rr, cc])), 4) if risk is not None else None,
             "risk_source": "external_risk_map" if risk is not None else "DEM_slope_roughness_proxy",
+            **thermal,
         }
         if analysis_only:
             violations = sum(not bool(allowed[p]) for p in path)
@@ -291,7 +412,8 @@ class RouteEngine:
         }
         for route_name, objective in (("shortest_feasible", "distance"), ("risk_aware", "risk")):
             t0 = time.perf_counter()
-            path, status = self._astar(allowed, start, goal, profile.max_edge_grade_deg, profile, risk, objective)
+            tables = self._move_tables(profile_name, allowed, profile, risk)
+            path, status = self._astar_fast(tables, allowed, start, goal, objective)
             elapsed = 1000 * (time.perf_counter() - t0)
             result["routes"][route_name] = (
                 self._summarize(path, profile, risk, allowed, elapsed) if path is not None

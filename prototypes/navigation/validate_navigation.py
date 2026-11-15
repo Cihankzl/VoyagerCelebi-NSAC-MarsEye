@@ -76,12 +76,15 @@ def validate_path(engine: RouteEngine, response: dict, kind: str) -> list[str]:
         length_m += step_m
         z0, z1 = float(engine.elevation[prev]), float(engine.elevation[cur])
         ascent += max(0.0, z1 - z0)
+        cold = getattr(engine, "cold_index", None)
         cost += risk_cost_of_step(
             profile, float(engine.slope[prev]), float(engine.slope[cur]),
             float(engine.roughness[prev]), float(engine.roughness[cur]),
             z0, z1, step_m,
             float(risk[prev]) if risk is not None else None,
             float(risk[cur]) if risk is not None else None,
+            float(cold[prev]) if cold is not None else None,
+            float(cold[cur]) if cold is not None else None,
         )
 
     if not _close(route.get("distance_m", math.nan), length_m):
