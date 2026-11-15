@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MarsEye — Gale Crater 3D Mission Planning</title>
+<meta name="description" content="MarsEye: Gale Crater 3D mission planning and navigation — NASA Space Apps Challenge prototype." />
+<link rel="stylesheet" href="./style.css" />
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<main class="app">
+  <!-- ============================== 3D VIEWPORT ============================== -->
+  <section id="viewport" aria-label="3D Gale Crater terrain">
+    <header class="brand-block">
+      <div class="brand">Voyager · NASA Space Apps 2026</div>
+      <h1>MarsEye <span>Prototype V1</span></h1>
+      <div class="subtitle">Gale Crater · Mount Sharp · 3D Mission Planning &amp; Navigation</div>
+      <div class="badges">
+        <span id="backendBadge" class="badge">Checking backend…</span>
+        <span class="badge">1 km × 1 km · 198 × 200 DEM · ~5 m</span>
+      </div>
+    </header>
+
+    <!-- Google-Maps-style surface switcher -->
+    <nav class="views" aria-label="Surface view">
+      <button class="view-card" data-view="topo" aria-pressed="true">
+        <span class="thumb thumb-topo"></span><span class="vc-title">Topography</span><span class="vc-sub">Hazard analysis</span>
+      </button>
+      <button class="view-card" data-view="optical" aria-pressed="false">
+        <span class="thumb thumb-optical"></span><span class="vc-title">Satellite</span><span class="vc-sub">MRO CTX optical</span>
+      </button>
+      <button class="view-card" data-view="thermal" aria-pressed="false">
+        <span class="thumb thumb-thermal"></span><span class="vc-title">Thermal IR</span><span class="vc-sub">THEMIS Band 9</span>
+      </button>
+    </nav>
+    <div id="subPills" class="sub-pills" role="group" aria-label="Topography layer">
+      <button data-topo="elevation" aria-pressed="true">Elevation Shading</button>
+      <button data-topo="slope" aria-pressed="false">Slope Risk Map</button>
+      <button data-topo="roughness" aria-pressed="false">Surface Roughness</button>
+    </div>
+    <div id="thermalPills" class="sub-pills" role="group" aria-label="Thermal rendering" hidden>
+      <button data-thermal="native" aria-pressed="true">Native 100 m pixels</button>
+      <button data-thermal="smooth" aria-pressed="false">Smooth interpolation</button>
+    </div>
+
+    <!-- Interaction modes -->
+    <div class="tools" role="group" aria-label="Map interaction mode">
+      <button data-mode="navigate" aria-pressed="true" title="Rotate / pan / zoom only"><i>✥</i>Navigate / Orbit</button>
+      <button data-mode="start" aria-pressed="false" title="Click terrain to set Start (A)"><i class="dot-a">A</i>Set Start</button>
+      <button data-mode="goal" aria-pressed="false" title="Click terrain to set Goal (B)"><i class="dot-b">B</i>Set Goal</button>
+      <button data-mode="waypoint" aria-pressed="false" title="Click terrain to add science waypoints"><i class="dot-s">S</i>Add Waypoints</button>
+    </div>
+
+    <!-- Live telemetry HUD -->
+    <aside class="hud" aria-live="off">
+      <div class="hud-title" title="Click to collapse"><span id="hudProfile">Rover</span> telemetry <span id="hudLeg" class="hud-leg"></span></div>
+      <div class="hud-body">
+        <div class="altimeter" title="Altimeter: DEM min → max">
+          <span class="alt-max" id="altMax">-3623</span>
+          <div class="alt-bar"><div class="alt-fill" id="altFill"></div><div class="alt-needle" id="altNeedle"></div></div>
+          <span class="alt-min" id="altMin">-3956</span>
+        </div>
+        <dl>
+          <div><dt>Elevation</dt><dd id="tElev">—</dd></div>
+          <div><dt>Net climb Δh</dt><dd id="tClimb">—</dd></div>
+          <div><dt>Slope</dt><dd id="tSlope">—</dd></div>
+          <div><dt>Surface temp</dt><dd id="tTemp">—</dd></div>
+          <div><dt>Progress</dt><dd id="tProg">—</dd></div>
+        </dl>
+      </div>
+    </aside>
+
+    <!-- Legends -->
+    <div id="legendTopo" class="legend-box"></div>
+    <div id="legendThermal" class="legend-box thermal" hidden>
+      <div class="prov">THEMIS IR Band 9 • ~100m native resolution • 03:15 Local Mars Time (Brightness Temp)</div>
+      <div class="scale" id="thermalScale"></div>
+      <div class="scale-labels"><span id="tkMin"></span><span id="tkMid"></span><span id="tkMax"></span></div>
+    </div>
+
+    <!-- Playback -->
+    <div class="playback" role="group" aria-label="Mission playback">
+      <button id="btnReset" title="Reset to start">⏮</button>
+      <button id="btnPlay" class="play" title="Play / Pause">▶</button>
+      <div class="speed" role="group" aria-label="Speed">
+        <button data-speed="0.5">0.5x</button><button data-speed="1" aria-pressed="true">1x</button><button data-speed="2">2x</button><button data-speed="4">4x</button>
+      </div>
+      <input id="scrubber" type="range" min="0" max="1000" value="0" step="1" aria-label="Timeline (% of route distance)" />
+      <span id="scrubPct" class="pct">0%</span>
+    </div>
+
+    <!-- Camera / layout controls -->
+    <div class="viewbtns" role="group" aria-label="Camera">
+      <button id="btnFit" title="Reset view: show the whole 1 km block">⟲ Reset view</button>
+      <button id="btnTop" title="Top-down (map) view">⬒ Top view</button>
+      <button id="btnFocus" title="Zoom to the rover / astronaut marker">◎ Follow marker</button>
+      <button id="btnHud" aria-pressed="false" title="Hide/show telemetry and legends">▤ Overlays</button>
+      <button id="btnPanel" aria-pressed="false" title="Hide side panel (bigger map)">⇥ Panel</button>
+    </div>
+    <div class="nav-hint">Left-drag: rotate · Right-drag or Shift+drag: pan · Wheel: zoom to cursor</div>
+    <div id="hover" class="hover-readout"></div>
+    <div id="toast" class="toast" role="status"></div>
+    <div id="busy" class="busy" hidden><span class="spinner"></span><span id="busyText">Computing routes…</span></div>
+    <div id="fatal" class="fatal" hidden></div>
+  </section>
+
+  <!-- ============================== SIDE PANEL ============================== -->
+  <aside class="panel">
+    <section class="card">
+      <h2>Mission</h2>
+      <div class="ab-grid">
+        <div class="ab"><span class="chip chip-a">A</span><span id="startLbl">click map</span></div>
+        <div class="ab"><span class="chip chip-b">B</span><span id="goalLbl">click map</span></div>
+      </div>
+      <ol id="wpList" class="wp-list"></ol>
+      <div class="row-btns">
+        <button id="btnPreset" class="ghost">Load preset mission</button>
+        <button id="btnClearWp" class="ghost">Clear waypoints</button>
+        <button id="btnClearAll" class="ghost danger">Reset all</button>
+      </div>
+      <div class="seg" role="group" aria-label="Visit order mode">
+        <button data-order="optimized" aria-pressed="true">Optimized Order <small>auto best sequence</small></button>
+        <button data-order="manual" aria-pressed="false">Manual Click Order <small>as clicked</small></button>
+      </div>
+      <div id="sequence" class="sequence"></div>
+    </section>
+
+    <section class="card">
+      <h2>Routes</h2>
+      <div class="profiles" role="group" aria-label="Active route">
+        <button data-active="rover" class="p-rover" aria-pressed="true">Rover</button>
+        <button data-active="astronaut" class="p-astronaut" aria-pressed="false">Astronaut</button>
+        <button data-active="shortest" class="p-shortest" aria-pressed="false">Shortest</button>
+      </div>
+      <div class="vis">
+        <label><input type="checkbox" data-vis="astronaut" checked /><i style="background:#ad86ff"></i>Astronaut Safe</label>
+        <label><input type="checkbox" data-vis="rover" checked /><i style="background:#42d5bd"></i>Rover Optimal</label>
+        <label><input type="checkbox" data-vis="shortest" checked /><i style="background:#61c8ff"></i>Shortest</label>
+      </div>
+      <div class="table-wrap"><table id="cmpTable"></table></div>
+      <div id="routeSource" class="tiny"></div>
+    </section>
+
+    <section class="card">
+      <h2>Elevation profile <span class="hint">click / drag to move the marker</span></h2>
+      <canvas id="profile" class="profile"></canvas>
+      <div class="slope-key"><span><i style="background:#3ecf73"></i>&lt;10°</span><span><i style="background:#f2b13a"></i>10–20°</span><span><i style="background:#ef4b4b"></i>&gt;20°</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Display</h2>
+      <label class="slider">Vertical exaggeration <b id="vsVal">1.0x</b>
+        <input id="vScale" type="range" min="1" max="3.5" step="0.05" value="1" />
+      </label>
+      <p class="tiny">Visual only. All metrics (distance, slope, climb) are computed on the true DEM.</p>
+    </section>
+
+    <section class="card provenance">
+      <h2>Data provenance</h2>
+      <ul>
+        <li><b>DEM:</b> Gale Crater pilot 1 km², 198×200 cells (dx 5.003 m, dy 4.997 m), row 0 = north.</li>
+        <li><b>Optical:</b> MRO CTX mosaic, 200×201 px, ~5 m/px, same bounding box.</li>
+        <li><b>Thermal:</b> 2001 Mars Odyssey THEMIS IR Band 9 (12.57 µm), I01350002PBT, night 03:15 LMST, 10×10 valid 100 m pixels (−9999 border removed, never used as a temperature).</li>
+        <li><b>Bounds:</b> 137.5195–137.5365° E, −4.7010 to −4.6842° N.</li>
+      </ul>
+      <p class="tiny warning">Profile limits (rover 20°, astronaut 25°) and cost weights, including the thermal cold-trap penalty, are experimental demo settings — not NASA-certified traversability or EVA safety limits. Brightness temperature is not contact temperature.</p>
+    </section>
+  </aside>
+</main>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

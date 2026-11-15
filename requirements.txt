@@ -1,0 +1,6 @@
+# MarsEye Prototype V1 — Python dependencies
+numpy>=1.24
+Pillow>=9.0          # scripts/prepare_web_assets.py (reads the GeoTIFFs, writes PNG textures)
+fastapi>=0.110       # prototypes/navigation/route_api.py
+uvicorn>=0.27
+httpx>=0.27          # only for the FastAPI tests (TestClient)

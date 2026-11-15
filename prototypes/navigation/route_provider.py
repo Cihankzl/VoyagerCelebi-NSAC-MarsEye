@@ -51,8 +51,13 @@ class RouteProvider:
     @classmethod
     def from_repo(cls, repo_root: str | Path | None = None, *,
                   risk_rover: str | Path | None = None,
-                  risk_astronaut: str | Path | None = None) -> "RouteProvider":
-        """Load actual repo data ONCE; paths to optional risk maps are repo-relative."""
+                  risk_astronaut: str | Path | None = None,
+                  use_thermal: bool = True) -> "RouteProvider":
+        """Load actual repo data ONCE; paths to optional risk maps are repo-relative.
+
+        use_thermal: when data/processed/thermal/thermal_temp_k.npy exists (made by
+        scripts/prepare_web_assets.py), add the THEMIS thermal criterion to risk_aware.
+        """
         root = Path(repo_root).resolve() if repo_root is not None else Path(__file__).resolve().parents[2]
         data = root / "data" / "processed"
         files = [data / "elevation.npy", data / "terrain_meta.json", data / "valid_mask.npy"]
@@ -70,6 +75,7 @@ class RouteProvider:
             elevation=files[0], meta=files[1], mask=files[2],
             risk_rover=optional_path(risk_rover),
             risk_astronaut=optional_path(risk_astronaut),
+            thermal=(data / "thermal" / "thermal_temp_k.npy") if use_thermal else None,
         )
         return cls(engine)
 
