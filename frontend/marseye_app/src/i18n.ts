@@ -1,0 +1,46 @@
+export type Locale = 'tr' | 'en'
+
+export const copy = {
+  tr: {
+    atlas: 'GALE GÖREV ATLASI', explore: 'Keşif', navigation: 'Navigasyon', science: 'Bilim hedefleri', region: 'Bölge', help: 'Yardım', reset: 'Görünümü sıfırla',
+    missionControl: 'GÖREV KONTROLÜ', planRoute: 'Rota planla', selectStart: 'Başlangıç A', selectGoal: 'Hedef B', addScience: 'Bilim noktası ekle', inspect: 'İncele',
+    clickTerrain: 'Bir nokta seçmek için araziye tıklayın.', start: 'Başlangıç', goal: 'Bitiş', notSelected: 'Seçilmedi', clear: 'Temizle',
+    mobility: 'HAREKET PROFİLİ', rover: 'Rover', astronaut: 'Astronot', calculate: 'Rotaları hesapla', cancel: 'İptal', loading: 'Hesaplanıyor…',
+    routeComparison: 'ROTA KARŞILAŞTIRMASI', reference: 'En kısa referans', feasible: 'En kısa geçilebilir', riskAware: 'En düşük model maliyeti',
+    analysisOnly: 'Yalnızca analiz — profil sınırlarını ihlal edebilir.', unavailable: 'Kullanılamıyor', noPath: 'Bu noktalar arasında rota bulunamadı.', blocked: 'Seçilen noktalar bu profil için geçilemez.',
+    distance: 'Mesafe', meanSlope: 'Ortalama eğim', maxSlope: 'Maks. hücre eğimi', maxGrade: 'Maks. geçiş eğimi', gain: 'Tırmanış', roughness: 'Ort. pürüzlülük', cost: 'Model maliyeti', runtime: 'Hesaplama', riskScore: 'Risk skoru',
+    terrainLayers: 'VERİ KATMANLARI', elevation: 'Yükseklik', slope: 'Eğim', rough: 'Pürüzlülük', optical: 'CTX optik', thermal: 'THEMIS termal', opacity: 'Opaklık',
+    mapHint: 'Sürükle: döndür · Sağ tık: kaydır · Tekerlek: yakınlaştır', north: 'K', scale: 'ÖLÇEK',
+    pointAnalysis: 'NOKTA İNCELEMESİ', pickPoint: 'Arazide bir nokta seçin.', coordinates: 'Koordinatlar', topography: 'Topografya', opticalData: 'Optik gözlem', thermalData: 'Termal gözlem', noObservation: 'Bu hücrede gözlem yok',
+    scienceTargets: 'BİLİM HEDEFLERİ', proposed: 'Kullanıcının önerdiği araştırma konumları', name: 'Ad', description: 'Açıklama', reason: 'Ziyaret gerekçesi', manual: 'Manuel sıra', optimized: 'Optimize sıra', missionRoute: 'Görev rotası', planMission: 'Görevi hesapla', visitOrder: 'Ziyaret sırası', legs: 'Etaplar',
+    regionInfo: 'GALE KRATERİ', pilot: 'Yaklaşık 1 × 1 km pilot alan', dataOrigin: 'VERİ KAYNAĞI', limitation: 'SINIRLAR', sourceCaveat: 'DEM kaynak ürün kimliği henüz doğrulanmadı. Eğim sınırları ve maliyet ağırlıkları deneysel; operasyonel onay anlamına gelmez.',
+    thermalCaveat: 'THEMIS verisi yaklaşık 100 m kaynak çözünürlüğünde gece parlaklık sıcaklığıdır; 5 m termal ölçüm değildir.',
+    opticalCaveat: 'CTX parlaklığı tek başına kaya, kum veya zemin dayanımı sınıflaması değildir.',
+    statusReady: 'Canlı V4 rota servisi bağlı', statusOffline: 'Rota servisine erişilemiyor', sourceUnknown: 'Doğrulanmamış DEM ürün kimliği', profilesDiffer: 'Rover ve Astronot farklı geçilebilirlik sınırları ve deneysel maliyet ağırlıkları kullanır.',
+    noteCost: 'Model ağırlıklı metre eşdeğeri; fiziksel enerji veya onaylanmış güvenlik puanı değildir.',
+    scienceDisclaimer: 'Bilim noktaları önerilen araştırma yerleridir; doğrulanmış örnekleme sahaları değildir.',
+    emptyMission: 'A, B ve en az bir bilim noktası seçin.',
+  },
+  en: {
+    atlas: 'GALE MISSION ATLAS', explore: 'Explore', navigation: 'Navigation', science: 'Science targets', region: 'Region', help: 'Help', reset: 'Reset view',
+    missionControl: 'MISSION CONTROL', planRoute: 'Plan a route', selectStart: 'Select Start A', selectGoal: 'Select Goal B', addScience: 'Add science point', inspect: 'Inspect',
+    clickTerrain: 'Click the terrain to select a point.', start: 'Start', goal: 'Goal', notSelected: 'Not selected', clear: 'Clear',
+    mobility: 'MOBILITY PROFILE', rover: 'Rover', astronaut: 'Astronaut', calculate: 'Calculate routes', cancel: 'Cancel', loading: 'Calculating…',
+    routeComparison: 'ROUTE COMPARISON', reference: 'Shortest reference', feasible: 'Shortest feasible', riskAware: 'Lowest model cost',
+    analysisOnly: 'Analysis only — may violate profile limits.', unavailable: 'Unavailable', noPath: 'No route connects these points.', blocked: 'Selected points are impassable for this profile.',
+    distance: 'Distance', meanSlope: 'Mean slope', maxSlope: 'Max cell slope', maxGrade: 'Max edge grade', gain: 'Ascent', roughness: 'Mean roughness', cost: 'Model cost', runtime: 'Calculation', riskScore: 'Risk score',
+    terrainLayers: 'DATA LAYERS', elevation: 'Elevation', slope: 'Slope', rough: 'Roughness', optical: 'CTX optical', thermal: 'THEMIS thermal', opacity: 'Opacity',
+    mapHint: 'Drag: orbit · Right click: pan · Wheel: zoom', north: 'N', scale: 'SCALE',
+    pointAnalysis: 'POINT INSPECTION', pickPoint: 'Select a point on the terrain.', coordinates: 'Coordinates', topography: 'Topography', opticalData: 'Optical observation', thermalData: 'Thermal observation', noObservation: 'No observation at this cell',
+    scienceTargets: 'SCIENCE TARGETS', proposed: 'User-proposed investigation locations', name: 'Name', description: 'Description', reason: 'Reason to visit', manual: 'Manual order', optimized: 'Optimized order', missionRoute: 'Mission route', planMission: 'Plan mission', visitOrder: 'Visit order', legs: 'Legs',
+    regionInfo: 'GALE CRATER', pilot: 'Approx. 1 × 1 km pilot area', dataOrigin: 'DATA PROVENANCE', limitation: 'LIMITATIONS', sourceCaveat: 'The DEM source product ID is not yet verified. Slope limits and cost weights are experimental, not operational approval.',
+    thermalCaveat: 'THEMIS provides nighttime brightness temperature at about 100 m source resolution; it is not a 5 m temperature measurement.',
+    opticalCaveat: 'CTX brightness alone does not classify rocks, sand, or soil strength.',
+    statusReady: 'Live V4 route service connected', statusOffline: 'Route service unavailable', sourceUnknown: 'Unverified DEM product ID', profilesDiffer: 'Rover and Astronaut use different traversal limits and experimental cost weights.',
+    noteCost: 'Model-weighted metre equivalent, not physical energy or a certified safety score.',
+    scienceDisclaimer: 'Science points are proposed investigation locations, not verified sampling sites.',
+    emptyMission: 'Select A, B, and at least one science point.',
+  },
+} as const
+
+export type CopyKey = keyof typeof copy.tr

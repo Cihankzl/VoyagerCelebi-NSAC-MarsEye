@@ -231,4 +231,5 @@ node_modules/
 
 # Python virtual environments and caches
 .venv/
+.tools/
 **/__pycache__/

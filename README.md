@@ -1,38 +1,52 @@
-# voyager-nasa-apps-challenge-project
-for voyager nasa apps challenge project
-# MarsEye — NASA Space Apps Challenge 2026
+# MarsEye — Gale Mission Atlas
 
-**Challenge:** Interplanetary Survival Guide: Martian Map
+MarsEye is a bilingual (Turkish/English) 3D exploration and experimental mission-planning application for a selected ~1 × 1 km area of Gale Crater. It uses the repository's real DEM, MRO CTX optical raster, Mars Odyssey THEMIS Band 9 brightness temperatures, and the existing Navigation V4 engine. Profile limits and weighted costs are illustrative; routes are **not approved mission plans**.
 
-## Project Overview
+## Local setup (Windows PowerShell)
 
-MarsEye is a 3D Mars exploration and mission-planning prototype that combines NASA terrain datasets with risk-aware pathfinding algorithms.
+Use Python 3.12 and Node.js 24. Install their official distributions if they are not already available. Virtual environments, `node_modules`, and any portable runtimes under `.tools` are ignored by Git.
 
-The system aims to help future astronauts explore scientifically valuable locations by comparing shortest routes with terrain-aware alternatives.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-lock.txt
+.\.venv\Scripts\python.exe scripts\prepare_web_data.py
+cd frontend\marseye_app
+npm ci
+npm run lint
+npm run build
+```
 
-## Pilot Region
+Open two PowerShell terminals at the repository root:
 
-Gale Crater, Mars.
+```powershell
+.\.venv\Scripts\python.exe prototypes\navigation\route_api.py
+```
 
-## Key Features
+```powershell
+cd frontend\marseye_app
+npm run preview
+```
 
-- 3D God's Eye View of Martian terrain
-- NASA terrain and geological datasets
-- Slope-based terrain risk analysis
-- A* shortest-path and risk-aware navigation
-- Route comparison and scientific exploration targets
+Visit `http://127.0.0.1:4173`. For live source reload, use `npm run dev` on port 5173; the production preview is the verified local path in this environment. Set `VITE_API_BASE` in `frontend/marseye_app/.env.local` if the API runs elsewhere. The API is at `http://127.0.0.1:8001/docs`.
 
-## Current Development Status
+## Demo workflow
 
-**Initial navigation prototype completed.**
+1. Choose **Start A**, then click a valid terrain cell. Choose **Goal B** and click another cell.
+2. Select Rover or Astronaut, then calculate routes. Toggle the shortest reference, shortest feasible, and lowest model-cost paths independently. The reference is analysis only.
+3. Select Optical or Thermal to inspect actual aligned observations. Click the terrain for elevation, slope, roughness, CTX intensity, and available THEMIS brightness temperature.
+4. Add up to five proposed science points. Use manual order or optimized order and calculate a multi-leg V4 mission route.
+5. Switch between Turkish and English in the header.
 
-The A* pathfinding algorithm has been tested on synthetic terrain.
+## Verification
 
-| Metric | Shortest Route | Risk-Aware Route |
-|---|---:|---:|
-| Distance | 178.00 m | 219.42 m |
-| Maximum slope | 29.70° | 9.98° |
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider prototypes\navigation\test_planner_v4.py prototypes\navigation\test_navigation_validation.py prototypes\navigation\test_route_provider.py prototypes\navigation\test_benchmark_navigation.py v4\mission_planning\test_mission_planner.py tests\test_platform_api.py
+cd frontend\marseye_app
+npm test
+npm run lint
+npm run build
+```
 
-These are synthetic test results, **not measurements from Gale Crater**.
+The original V3 demo remains at `frontend/marseye_v3_demo/`. To view it, run `python -m http.server 8000` from the repository root and open `http://127.0.0.1:8000/frontend/marseye_v3_demo/`.
 
-The next milestone is to integrate actual NASA elevation data and visualize both routes on a 3D Martian terrain model.
+See [platform API](docs/platform_api.md), [scientific sources](docs/sources.md), and [implementation progress](docs/implementation_progress.md).

@@ -24,6 +24,7 @@ class LegResult:
     distance_m: float
     weighted_cost_m_equiv: float
     reason: Optional[str] = None
+    metrics: Optional[dict] = None
 
     def to_dict(self) -> dict:
         data = {
@@ -36,6 +37,8 @@ class LegResult:
         }
         if self.reason:
             data["reason"] = self.reason
+        if self.metrics:
+            data.update(self.metrics)
         return data
 
 
@@ -97,6 +100,12 @@ class NavigationV4Adapter:
             points_rc=points,
             distance_m=float(raw["distance_m"]),
             weighted_cost_m_equiv=float(raw["weighted_cost_m_equiv"]),
+            metrics={key: raw.get(key) for key in (
+                "mean_slope_deg", "max_slope_deg", "max_edge_grade_deg",
+                "elevation_gain_m", "elevation_loss_m", "mean_roughness_m",
+                "mean_risk_score_0_1", "runtime_ms", "risk_source",
+                "objective_cost", "objective_unit", "terrain_id",
+            ) if key in raw},
         )
 
 
@@ -209,20 +218,20 @@ class MultiStopMissionPlanner:
     Birden fazla bilimsel hedef (Science Target) için yönlü maliyet matrisi
     ve permütasyon tabanlı görev sırası optimizasyonu gerçekleştirir.
     """
-    def __init__(self, router: PairwiseRouteProvider):
+    def __init__(self, router: PairwiseRouteProvider, grid_shape: Tuple[int, int] = (GRID_ROWS, GRID_COLS)):
         self.router = router
-        # Önbellek anahtarı: (from_id, to_id, profile, route_type)
-        self._leg_cache: Dict[Tuple[str, str, str, str], LegResult] = {}
+        self.grid_shape = grid_shape
+        # Coğrafi noktalar değiştiğinde eski hedef kimliklerine ait rotaları yeniden kullanma.
+        self._leg_cache: Dict[Tuple[Tuple[int, int], Tuple[int, int], str, str], LegResult] = {}
 
     def clear_cache(self) -> None:
         self._leg_cache.clear()
 
-    @staticmethod
-    def _validate_cell(rc: List[int], label: str) -> None:
+    def _validate_cell(self, rc: List[int], label: str) -> None:
         if not isinstance(rc, (list, tuple)) or len(rc) != 2:
             raise ValueError(f"Geçersiz koordinat formatı ({label}): [row, col] bekleniyor.")
         r, c = rc
-        if not (0 <= r < GRID_ROWS and 0 <= c < GRID_COLS):
+        if type(r) is not int or type(c) is not int or not (0 <= r < self.grid_shape[0] and 0 <= c < self.grid_shape[1]):
             raise ValueError(f"Harita sınırı dışında koordinat ({label}): {rc}")
 
     def _validate_request(self, request: dict) -> Tuple[List[int], List[int], List[dict], str, str, str]:
@@ -269,7 +278,7 @@ class MultiStopMissionPlanner:
         profile: str,
         route_type: str,
     ) -> LegResult:
-        cache_key = (from_id, to_id, profile, route_type)
+        cache_key = (tuple(node_coords[from_id]), tuple(node_coords[to_id]), profile, route_type)
         if cache_key not in self._leg_cache:
             self._leg_cache[cache_key] = self.router.compute_leg(
                 from_id=from_id,
