@@ -1,41 +1,43 @@
-# voyager-nasa-apps-challenge-project
-for voyager nasa apps challenge project
-# MarsEye — NASA Space Apps Challenge 2026
+# MarsEye
 
-**Challenge:** Interplanetary Survival Guide: Martian Map
+MarsEye is a 3D Mars exploration and mission-planning prototype for Gale Crater. It combines Mars terrain data with route planning to visualize terrain-aware paths.
 
-## Project Overview
+## Quick start
 
-MarsEye is a 3D Mars exploration and mission-planning prototype that combines NASA terrain datasets with risk-aware pathfinding algorithms.
+From the repository root:
 
-The system aims to help future astronauts explore scientifically valuable locations by comparing shortest routes with terrain-aware alternatives.
+```bash
+pip install -r requirements.txt
+python -m http.server 8000
+open http://localhost:8000/frontend/
+```
 
-## Pilot Region
+The Python API is optional:
 
-Gale Crater, Mars.
+```bash
+python prototypes/navigation/route_api.py
+```
 
-## Key Features
+It runs FastAPI on port 8001.
 
-- 3D God's Eye View of Martian terrain
-- NASA terrain and geological datasets
-- Slope-based terrain risk analysis
-- A* shortest-path and risk-aware navigation
-- Route comparison and scientific exploration targets
+## Repository layout
 
-## Current Development Status
+| Folder | Purpose |
+|---|---|
+| `frontend/` | The current MarsEye web app. |
+| `data/` | Raw source data and processed app data. |
+| `prototypes/navigation/` | Navigation planners, route services, and API. |
+| `v4/mission_planning/` | Mission-planning module and tests. |
+| `scripts/` | Data preparation and web asset scripts. |
+| `docs/` | Data sources, architecture, handoffs, and route contracts. |
+| `archive/` | Historical and misplaced files; **not part of the app**. |
 
-**Initial navigation prototype completed.**
+## Data sources
 
-The A* pathfinding algorithm has been tested on synthetic terrain.
-
-| Metric | Shortest Route | Risk-Aware Route |
-|---|---:|---:|
-| Distance | 178.00 m | 219.42 m |
-| Maximum slope | 29.70° | 9.98° |
-
-These are synthetic test results, **not measurements from Gale Crater**.
-
-The next milestone is to integrate actual NASA elevation data and visualize both routes on a 3D Martian terrain model.
+- The topographic input is `data/raw/topographic/gale_dem_1024.tif`. It is processed into the routing grid by `scripts/prepare_terrain_grid.py`; its exact originating NASA/USGS product identifier still needs confirmation.
+- `data/raw/optical/optik_ctx_1024.tif` is the MRO CTX Gale mosaic and is documented as aligned with the DEM.
+- The THEMIS daytime IR image is used only as a visual layer and has no temperature units. Routing temperatures come from the night THEMIS BTR `data/raw/thermal/I01350002PBT.IMG` in Kelvin.
+- Source context: [NASA Mars Trek](https://trek.nasa.gov/mars/) and the [NASA Mars Reconnaissance Orbiter Context Camera](https://science.nasa.gov/mission/mars-reconnaissance-orbiter/).
 
 
 ## Prototype V1 — run it (3D God's Eye app)
