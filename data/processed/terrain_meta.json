@@ -1,41 +1,42 @@
 {
-  "region": "Gale Crater, Mars",
-  "source": "User-provided Gale GeoTIFF; confirm NASA/USGS source product ID",
-  "source_filename": "1kmistenilenyer.tif",
-  "source_crs": "ESRI:104905",
-  "source_crs_wkt": "GEOGCS[\"GCS_Mars_2000\",DATUM[\"D_Mars_2000\",SPHEROID[\"Mars_2000_IAU_IAG\",3396190,169.894447223612,AUTHORITY[\"ESRI\",\"107905\"]],AUTHORITY[\"ESRI\",\"106905\"]],PRIMEM[\"Reference_Meridian\",0,AUTHORITY[\"ESRI\",\"108900\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST],AUTHORITY[\"ESRI\",\"104905\"]]",
-  "crs": "ESRI:104905",
+  "region": "Gale Crater, Mars (Mount Sharp lower slopes)",
+  "source": "Team export of a HiRISE-based DEM; product ID not recorded",
+  "source_filename": "gale_dem_1024.tif",
+  "source_crs": "Mars 2000 Sphere (IAU), geographic, planetocentric latitude, east-positive longitude",
+  "source_crs_wkt": "GEOGCS[\"Mars_2000_(Sphere)\",DATUM[\"Mars_2000_(Sphere)\",SPHEROID[\"Mars_2000_(Sphere)\",3396190,0]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"degree\",0.0174532925199433]]",
+  "crs": "Mars_2000_Sphere_GCS",
   "longitude_convention": "East positive",
   "grid_shape": [
-    198,
+    200,
     200
   ],
-  "dx_m": 5.0033693,
-  "dy_m": 4.9968054,
+  "dx_m": 5.0031728,
+  "dy_m": 5.005,
   "nodata": null,
   "invalid_cells_stored_as": "NaN",
   "elevation_unit": "m",
   "bounds_degrees": {
-    "west_lon": 137.5195376879813,
-    "east_lon": 137.53647577525885,
-    "south_lat": -4.701044655528354,
-    "north_lat": -4.684157180065381
+    "west_lon": 137.519537687981,
+    "east_lon": 137.536475775259,
+    "south_lat": -4.701044655528,
+    "north_lat": -4.684157180065
   },
-  "center_lon": 137.52800673162008,
-  "center_lat": -4.6926009177968675,
+  "center_lon": 137.52800673162,
+  "center_lat": -4.692600917796501,
   "affine_transform_gcs_mars_2000": [
-    8.469043638773353e-05,
+    8.469043638996254e-05,
     0.0,
-    137.5195376879813,
+    137.519537687981,
     0.0,
-    -8.529028011602204e-05,
-    -4.684157180065381
+    -8.443737731500089e-05,
+    -4.684157180065
   ],
   "grid_axis_convention": "row increases southward, column increases eastward; pixels are cell-centred",
-  "metric_scaling_note": "Approximate local metres derived from Mars 2000 ellipsoid at pilot-area centre; original Mars longitude/latitude grid preserved",
+  "metric_scaling_note": "Local metres from the Mars 2000 sphere (R=3396190 m) at the pilot-area centre",
   "original_grid_shape": [
-    1001,
-    1004
+    1024,
+    1024
   ],
-  "source_nodata": -3.4028230607370965e+38
+  "resampling": "area (box) mean of the ~1 m DEM, NoData ignored",
+  "source_nodata": -9999.0
 }

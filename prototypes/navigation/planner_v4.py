@@ -397,7 +397,7 @@ class RouteEngine:
 
         result = {
             "schema_version": "1.0",
-            "terrain_id": "gale_5m_v1" if self.elevation.shape == (198, 200) else "custom_grid",
+            "terrain_id": "gale_5m_v1" if self.elevation.shape in ((198, 200), (200, 200)) else "custom_grid",
             "grid_shape": [rows, cols],
             "dx_m": self.dx,
             "dy_m": self.dy,

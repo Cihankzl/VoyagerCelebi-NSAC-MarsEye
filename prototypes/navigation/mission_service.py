@@ -51,13 +51,14 @@ PRIMARY_ROUTES: dict[str, dict[str, str]] = {
 }
 
 PRESET_MISSION = {
-    "start_rc": [99, 20],
-    "goal_rc": [99, 180],
+    # Cells chosen on gentle (<12 deg) terrain of the 200x200 DEM, reachable by both profiles.
+    # Clicked deliberately out of order so "optimized" shows a real saving.
+    "start_rc": [100, 22],
+    "goal_rc": [15, 181],
     "waypoints": [
-        # Deliberately clicked out of order so "optimized" shows a real saving.
-        {"id": "S1", "rc": [75, 150]},
-        {"id": "S2", "rc": [45, 65]},
-        {"id": "S3", "rc": [150, 100]},
+        {"id": "S1", "rc": [45, 100]},
+        {"id": "S2", "rc": [150, 35]},
+        {"id": "S3", "rc": [75, 75]},
     ],
 }
 
@@ -131,7 +132,7 @@ class MissionService:
         e = self.engine
         return {
             "schema_version": "1.1",
-            "terrain_id": "gale_5m_v1" if e.elevation.shape == (198, 200) else "custom_grid",
+            "terrain_id": "gale_5m_v1" if e.elevation.shape in ((198, 200), (200, 200)) else "custom_grid",
             "grid_shape": list(e.elevation.shape),
             "dx_m": e.dx, "dy_m": e.dy,
             "coordinate_system": "row_col_0_based_origin_upper_left",

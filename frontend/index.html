@@ -23,7 +23,7 @@
       <div class="subtitle">Gale Crater · Mount Sharp · 3D Mission Planning &amp; Navigation</div>
       <div class="badges">
         <span id="backendBadge" class="badge">Checking backend…</span>
-        <span class="badge">1 km × 1 km · 198 × 200 DEM · ~5 m</span>
+        <span class="badge">1 km × 1 km · 200 × 200 DEM · ~5 m</span>
       </div>
     </header>
 
@@ -47,6 +47,7 @@
     <div id="thermalPills" class="sub-pills" role="group" aria-label="Thermal rendering" hidden>
       <button data-thermal="native" aria-pressed="true">Native 100 m pixels</button>
       <button data-thermal="smooth" aria-pressed="false">Smooth interpolation</button>
+      <button data-thermal="day" aria-pressed="false" title="THEMIS daytime IR picture, ~1 m export, no temperature units">Day IR image</button>
     </div>
 
     <!-- Interaction modes -->
@@ -164,9 +165,9 @@
     <section class="card provenance">
       <h2>Data provenance</h2>
       <ul>
-        <li><b>DEM:</b> Gale Crater pilot 1 km², 198×200 cells (dx 5.003 m, dy 4.997 m), row 0 = north.</li>
-        <li><b>Optical:</b> MRO CTX mosaic, 200×201 px, ~5 m/px, same bounding box.</li>
-        <li><b>Thermal:</b> 2001 Mars Odyssey THEMIS IR Band 9 (12.57 µm), I01350002PBT, night 03:15 LMST, 10×10 valid 100 m pixels (−9999 border removed, never used as a temperature).</li>
+        <li><b>DEM:</b> HiRISE-based DEM export (1024×1024, ~1 m, Mars 2000 sphere) averaged to 200×200 cells (dx 5.003 m, dy 5.005 m), row 0 = north. The southern ~25% is lower-resolution fill outside the HiRISE strip.</li>
+        <li><b>Optical:</b> MRO CTX Gale mosaic export, 1024×1024 px, same bounding box and sphere CRS — verified to match the DEM relief.</li>
+        <li><b>Thermal:</b> 2001 Mars Odyssey THEMIS IR Band 9 (12.57 µm), I01350002PBT, night 03:15 LMST, sampled directly from the raw PDS3 strip at the DEM's Mars 2000 sphere bounds (same pixels as the team's clip; box edges now use real values instead of the −9999 border). Position uncertainty about ±1 THEMIS pixel (100 m).</li>
         <li><b>Bounds:</b> 137.5195–137.5365° E, −4.7010 to −4.6842° N.</li>
       </ul>
       <p class="tiny warning">Profile limits (rover 20°, astronaut 25°) and cost weights, including the thermal cold-trap penalty, are experimental demo settings — not NASA-certified traversability or EVA safety limits. Brightness temperature is not contact temperature.</p>

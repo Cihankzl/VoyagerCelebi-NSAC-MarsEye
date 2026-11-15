@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Protocol, Tuple
 
 
-GRID_ROWS = 198
+GRID_ROWS = 200  # data/processed grid is 200 x 200 since the 1024 px DEM update
 GRID_COLS = 200
 CELL_SIZE_M = 5.0
 MAX_SCIENCE_TARGETS = 5

@@ -15,8 +15,8 @@ const DATA = '../data/processed/';
 const ROUTE_KEYS = ['astronaut', 'rover', 'shortest'];
 // Set to true once data/raw/optical/mosaic1km.tif is re-clipped at the DEM's true location
 // (planetocentric lat -4.646110 .. -4.629418, lon 137.519538 .. 137.536476).
-const OPTICAL_ALIGNED = false;   // DEM and CTX image currently show different terrain (cause under investigation)
-const PRESET = { start: [99, 20], goal: [99, 180], waypoints: [[75, 150], [45, 65], [150, 100]] };
+const OPTICAL_ALIGNED = true;    // DEM and CTX image currently show different terrain (cause under investigation)
+const PRESET = { start: [100, 22], goal: [15, 181], waypoints: [[45, 100], [150, 35], [75, 75]] };
 const fmt = (v, d = 1) => (v === null || v === undefined || !Number.isFinite(+v)) ? '—' : (+v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 const signed = (v, d = 1) => (v >= 0 ? '+' : '−') + fmt(Math.abs(v), d);
 
@@ -205,9 +205,11 @@ function paintTopo(mode) {
 
 const loader = new THREE.TextureLoader();
 const loadTex = (url) => new Promise((res) => loader.load(url, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); res(t); }, undefined, () => res(null)));
-const [texOptical, texThermalNative, texThermalSmooth] = await Promise.all([
+const [texOptical, texThermalNative, texThermalSmooth, texThermalDay] = await Promise.all([
   loadTex(DATA + 'optical_mosaic.png'), loadTex(DATA + 'thermal/thermal_100m.png'), loadTex(DATA + 'thermal/thermal_smooth.png'),
+  loadTex(DATA + 'thermal/themis_day_ir.png'),
 ]);
+if (!texThermalDay) document.querySelector('[data-thermal="day"]')?.remove();
 if (texThermalNative) { texThermalNative.magFilter = THREE.NearestFilter; texThermalNative.minFilter = THREE.LinearFilter; texThermalNative.generateMipmaps = false; }
 const matTopo = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0, side: THREE.DoubleSide });
 const matOptical = new THREE.MeshStandardMaterial({ map: texOptical, color: '#f1e3d3', roughness: 1, metalness: 0, side: THREE.DoubleSide });
@@ -385,6 +387,12 @@ function thermalLegend() {
   $('#thermalScale').style.background = `linear-gradient(90deg, ${stops})`;
   const lo = thermal.stats_k.min, hi = thermal.stats_k.max, mid = (lo + hi) / 2;
   const lab = (k) => `${fmt(k, 2)} K / ${fmt(k - 273.15, 2)} °C`;
+  if (state.thermalMode === 'day') {
+    $('#legendThermal .prov').textContent = 'THEMIS IR daytime image • relative brightness only (no temperature units) • visual layer';
+    $('#tkMin').textContent = 'cooler (darker IR)'; $('#tkMid').textContent = ''; $('#tkMax').textContent = 'warmer (brighter IR)';
+    return;
+  }
+  $('#legendThermal .prov').textContent = 'THEMIS IR Band 9 • ~100m native resolution • 03:15 Local Mars Time (Brightness Temp)';
   $('#tkMin').textContent = lab(lo); $('#tkMid').textContent = lab(mid); $('#tkMax').textContent = lab(hi);
 }
 function applyView() {
@@ -398,7 +406,7 @@ function applyView() {
     if (!texOptical) toast('optical_mosaic.png missing — run scripts/prepare_web_assets.py');
     terrainMesh.material = matOptical;
   } else {
-    const t = state.thermalMode === 'smooth' ? texThermalSmooth : texThermalNative;
+    const t = state.thermalMode === 'smooth' ? texThermalSmooth : state.thermalMode === 'day' ? texThermalDay : texThermalNative;
     matThermal.map = t; matThermal.emissiveMap = t; matThermal.needsUpdate = true;
     terrainMesh.material = matThermal;
   }
