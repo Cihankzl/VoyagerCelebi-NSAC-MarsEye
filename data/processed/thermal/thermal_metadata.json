@@ -1,0 +1,48 @@
+{
+  "source_product_id": "I01350002PBT",
+  "source_file": "data/raw/thermal/I01350002PBT.IMG",
+  "source_product_type": "PDS3 projected brightness temperature",
+  "instrument": "2001 Mars Odyssey / THEMIS Infrared (Band 9, 12.57 micrometers)",
+  "source_dataset_id": "ODY-M-THM-5-IRPBT-V2.0",
+  "source_acquisition_utc": "2002-04-04T17:11:57.369",
+  "mars_local_time_hhmm": "03:15",
+  "source_raster_shape": [
+    3612,
+    804
+  ],
+  "source_resolution_m": [
+    100.0,
+    100.0
+  ],
+  "data_type": "float32",
+  "unit": "Kelvin brightness temperature",
+  "source_crs_wkt": "PROJCS[\"SINUSOIDAL MARS\",GEOGCS[\"GCS_MARS\",DATUM[\"D_MARS\",SPHEROID[\"MARS\",3396190,0]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Sinusoidal\"],PARAMETER[\"longitude_of_center\",137.483],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+  "pilot_bounds_lonlat_east_planetocentric": {
+    "west": 137.5195376879813,
+    "east": 137.53647577525885,
+    "south": -4.701044655528354,
+    "north": -4.684157180065381
+  },
+  "clipped_file": "data/processed/thermal/I01350002PBT_gale_100m.tif",
+  "clipped_raster_shape": [
+    11,
+    11
+  ],
+  "clipped_grid_resolution_m": [
+    100.0,
+    100.0
+  ],
+  "valid_pixel_count": 100,
+  "stats_K": {
+    "min": 188.98757934570312,
+    "mean": 193.26766967773438,
+    "max": 196.03172302246094
+  },
+  "notes": [
+    "Clipped to pilot bounding box; no elevation or 5 m grid interpolation applied.",
+    "No-data set to -9999; beyond AOI footprint excluded.",
+    "PBT values are brightness temperatures, not certified ambient or rover contact temperatures.",
+    "Coordinate transformation uses Mars sphere radius 3396190 m and the original PDS Sinusoidal central meridian.",
+    "Approx 100 m native pixel resolution; do not claim 5 m thermal resolution."
+  ]
+}
