@@ -27,9 +27,11 @@
 - Verification: 35 selected Python tests passed (one third-party Starlette deprecation warning), two frontend tests passed, ESLint passed, and TypeScript/Vite production build passed. Live API returned all three real V4 routes and an optimized five-target/six-leg mission; API and asset dataset hashes matched `03b9a9b46c1659b2`. Native Floorp QA covered A/B selection, point inspection, profile recalculation, route toggles, thermal/optical layers, science missions, language switching, and a stacked 760 px layout.
 - Commit SHA: `422f40a`; pushed to `origin/feature/marseye-integrated-platform`.
 
-## Next checkpoint
+## Delivery handoff
 
-- Prepare a pull request from the feature branch without merging into `main`; then record its URL and final handoff state.
+- Draft PR #9: https://github.com/Cihankzl/voyager-nasa-apps-chalange-project/pull/9 (head: `feature/marseye-integrated-platform`, base: `main`). It was created in the authenticated browser after the GitHub connector returned HTTP 403 for PR creation. No merge was performed.
+- The repository had no GitHub PR checks listed at PR creation; local verification results above are the evidence for this checkpoint. Reviewers should inspect the scientific limitations and rerun the documented commands.
+- This handoff update is documentation-only; no application code changed after `422f40a`.
 
 ## Known scientific limitations
 

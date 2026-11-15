@@ -7,6 +7,7 @@ Updated: 2026-11-15 (Europe/Istanbul). Worktree: `C:\Users\ghost\Desktop\coding\
 - Commit `2be7e98` (`chore: establish isolated MarsEye toolchain`) was pushed to `origin/feature/marseye-integrated-platform`.
 - Scientific web data checkpoint `af4ba95` (`feat: prepare aligned Gale science layers`) was pushed to the same feature branch.
 - Integrated application checkpoint `422f40a` (`feat: integrate live Gale exploration and mission planning`) was pushed to the same feature branch.
+- Handoff documentation checkpoint `e68b7a6` (`docs: record verified MarsEye integration checkpoint`) was pushed to the same branch. Draft PR #9 is open: https://github.com/Cihankzl/voyager-nasa-apps-chalange-project/pull/9. It targets `main`; do not merge automatically.
 - Official portable CPython 3.12.10 and Node.js 24.22.3 were unpacked under ignored `.tools/`. `.venv/` and frontend `node_modules/` are also ignored.
 - Integrated-code verification: 35 selected Python tests passed, 2 frontend tests passed, ESLint passed, and TypeScript/Vite production build passed. The Python run reported one third-party Starlette deprecation warning.
 - `frontend/marseye_v3_demo/` and original scientific rasters were not changed.
@@ -23,10 +24,11 @@ Updated: 2026-11-15 (Europe/Istanbul). Worktree: `C:\Users\ghost\Desktop\coding\
 - Native Floorp control verified desktop A/B terrain picking, point inspection, profile switching and recalculation, all three route types and the reference warning, CTX/THEMIS layers, one/two science targets, optimized mission order, Turkish/English switching, and the stacked 760 px layout after the responsive breakpoint change.
 - DEM and CTX exact source product IDs remain unverified. No validated external risk map exists. Thermal source resolution is ~100 m.
 - The production preview must be rebuilt after frontend edits. A verified production build is present in ignored `dist/` but should not be committed.
+- GitHub's connector could not create the PR (HTTP 403: resource not accessible by integration); the signed-in browser successfully created draft PR #9. No PR checks were listed at creation time.
 
 ## Next actions
 
-1. Commit and push this handoff update, then prepare a pull request from `feature/marseye-integrated-platform` to `main` without merging it.
+1. Review draft PR #9 and run the documented local checks before considering it ready for review. Do not merge automatically.
 2. Regenerate web assets if raw/metadata inputs change. Current asset/API hash matched: `03b9a9b46c1659b2`.
 3. Resolve exact DEM/CTX source product identities and evaluate further scientific risk layers only when independently validated; neither is a prerequisite for the current experimental application.
 
