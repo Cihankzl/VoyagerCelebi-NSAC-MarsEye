@@ -7,11 +7,18 @@
 - Installed official portable CPython 3.12.10 and Node.js 24.22.3 under ignored `.tools/`; created ignored `.venv/` and frontend `node_modules/`.
 - Pinned Python direct and transitive dependencies, plus npm dependencies through `package-lock.json`.
 - Verification: Python interpreter and pip run; Node/npm run; 29 selected navigation, mission, and real-data platform tests passed; frontend lint and production build passed. Browser automation host is unavailable; no browser interaction result is claimed.
+- Commit SHA: `2be7e98`; pushed to `origin/feature/marseye-integrated-platform`.
+
+## Checkpoint 1 — Reproducible scientific web data
+
+- Added a raster preparation script, aligned CTX and THEMIS PNG layers, terrain JSON, provenance manifest, and aligned point samples.
+- Confirmed source raster corner/center mapping and a thermal center sample against the clipped GeoTIFF; preserved thermal NoData transparency.
+- Generated 198 × 200 DEM, 39,600 optical display cells, and 36,288 thermal display cells. Dataset hash: `03b9a9b46c1659b2`.
+- Verification: preparation command succeeded; real-data/API tests 6/6 passed (one dependency deprecation warning). Existing raw rasters were not changed.
 - Commit SHA: recorded in the next checkpoint after commit creation.
 
-## Remaining checkpoints
+## Next checkpoints
 
-- Prepare and verify reproducible CTX/THEMIS web assets and point samples.
 - Deliver the integrated 3D frontend, V4 routes, and real multi-stop mission API.
 - Complete final regression, documentation, local smoke checks, and pull request.
 

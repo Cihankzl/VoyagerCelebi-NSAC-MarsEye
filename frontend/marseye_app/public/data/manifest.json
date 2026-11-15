@@ -1,0 +1,52 @@
+{
+  "dataset_hash": "03b9a9b46c1659b2",
+  "grid_shape": [
+    198,
+    200
+  ],
+  "bounds_degrees": {
+    "west_lon": 137.5195376879813,
+    "east_lon": 137.53647577525885,
+    "south_lat": -4.701044655528354,
+    "north_lat": -4.684157180065381
+  },
+  "topographic_source": "User-provided Gale GeoTIFF; confirm NASA/USGS source product ID",
+  "optical": {
+    "instrument": "MRO CTX",
+    "source_shape": [
+      200,
+      201
+    ],
+    "source_crs_wkt": "GEOGCS[\"GCS_Mars_2000_Sphere\",DATUM[\"Mars_2000_(Sphere)\",SPHEROID[\"Mars_2000_Sphere_IAU_IAG\",3396190,0]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+    "source_resolution": [
+      8.426909093528612e-05,
+      8.443737731500089e-05
+    ],
+    "aligned_valid_cells": 39600
+  },
+  "thermal": {
+    "instrument": "2001 Mars Odyssey / THEMIS Infrared (Band 9, 12.57 micrometers)",
+    "source_product_id": "I01350002PBT",
+    "source_resolution_m": [
+      100.0,
+      100.0
+    ],
+    "unit": "Kelvin brightness temperature",
+    "mars_local_time": "03:15",
+    "stats_K": {
+      "min": 188.98757934570312,
+      "mean": 193.26766967773438,
+      "max": 196.03172302246094
+    },
+    "source_shape": [
+      11,
+      11
+    ],
+    "source_crs_wkt": "PROJCS[\"SINUSOIDAL MARS\",GEOGCS[\"GCS_MARS\",DATUM[\"D_MARS\",SPHEROID[\"MARS\",3396190,0]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Sinusoidal\"],PARAMETER[\"longitude_of_center\",137.483],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+    "source_resolution": [
+      100.0,
+      100.0
+    ],
+    "aligned_valid_cells": 36288
+  }
+}
