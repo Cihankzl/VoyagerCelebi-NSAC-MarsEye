@@ -5,38 +5,36 @@ Updated: 2026-11-15 (Europe/Istanbul). Worktree: `C:\Users\ghost\Desktop\coding\
 ## Verified checkpoint
 
 - Commit `2be7e98` (`chore: establish isolated MarsEye toolchain`) was pushed to `origin/feature/marseye-integrated-platform`.
-- Scientific web data is prepared and verified; its checkpoint commit SHA will be recorded after creation.
+- Scientific web data checkpoint `af4ba95` (`feat: prepare aligned Gale science layers`) was pushed to the same feature branch.
+- Integrated application checkpoint `422f40a` (`feat: integrate live Gale exploration and mission planning`) was pushed to the same feature branch.
 - Official portable CPython 3.12.10 and Node.js 24.22.3 were unpacked under ignored `.tools/`. `.venv/` and frontend `node_modules/` are also ignored.
-- Selected Python tests: 29 passed, 1 third-party deprecation warning. Frontend lint and production build passed before the later small changes. Do not treat subsequent unstaged code as verified until checks rerun.
+- Integrated-code verification: 35 selected Python tests passed, 2 frontend tests passed, ESLint passed, and TypeScript/Vite production build passed. The Python run reported one third-party Starlette deprecation warning.
 - `frontend/marseye_v3_demo/` and original scientific rasters were not changed.
 
-## Work currently in progress (uncommitted)
+## Completed integration
 
-- FastAPI point inspection and real V4 multi-stop mission endpoint in `prototypes/navigation/route_api.py`.
-- Small integration fixes in `v4/mission_planning/mission_planner.py`.
-- New bilingual React/Three.js application in `frontend/marseye_app/src/` and scientific/API documentation.
-- Real DEM platform tests under `tests/`.
+- FastAPI point inspection and real V4 multi-stop mission endpoint in `prototypes/navigation/route_api.py`; small adapter/cache fixes in `v4/mission_planning/mission_planner.py`.
+- New bilingual React/Three.js application in `frontend/marseye_app/src/` with the real DEM, scientific layers, all three route types, and up to five science targets.
+- API/geospatial tests in `tests/`, frontend coordinate tests, README and API documentation are included in `422f40a`. Check `git status` before further changes.
 
 ## Current issues and limits
 
 - The frontend Vite development server's dependency optimization failed in this sandbox with an ancestor-directory access error. `npm run build` and `npm run preview` work; use the production preview for local verification here.
-- The browser access host was unavailable, but native Floorp control worked. Desktop visual QA verified A/B terrain picking, point inspection, profile switching, all three route types and the reference warning, CTX/THEMIS layers, one and two science targets, optimized mission order, and Turkish/English switching. Tablet layout still needs recheck after the latest responsive breakpoint change.
+- Native Floorp control verified desktop A/B terrain picking, point inspection, profile switching and recalculation, all three route types and the reference warning, CTX/THEMIS layers, one/two science targets, optimized mission order, Turkish/English switching, and the stacked 760 px layout after the responsive breakpoint change.
 - DEM and CTX exact source product IDs remain unverified. No validated external risk map exists. Thermal source resolution is ~100 m.
-- The live API process must be restarted after API source edits; the preview must be rebuilt after frontend edits.
+- The production preview must be rebuilt after frontend edits. A verified production build is present in ignored `dist/` but should not be committed.
 
 ## Next actions
 
-1. Rebuild the frontend after the latest responsive/cost-label edits, then inspect the 760 px layout through native Floorp.
-2. Rerun the selected Python tests, frontend tests/lint/build, and live API smoke checks.
-3. Regenerate assets if raw/metadata inputs change. Current asset/API hash matched: `03b9a9b46c1659b2`.
-4. Commit and push the tested data checkpoint, then the integrated-app checkpoint; update this file and `docs/implementation_progress.md` with real SHAs and any failures.
-5. Prepare a PR on the feature branch without merging into `main`.
+1. Commit and push this handoff update, then prepare a pull request from `feature/marseye-integrated-platform` to `main` without merging it.
+2. Regenerate web assets if raw/metadata inputs change. Current asset/API hash matched: `03b9a9b46c1659b2`.
+3. Resolve exact DEM/CTX source product identities and evaluate further scientific risk layers only when independently validated; neither is a prerequisite for the current experimental application.
 
 ## Commands (PowerShell, repo root)
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\prepare_web_data.py
-.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider prototypes\navigation\test_planner_v4.py prototypes\navigation\test_navigation_validation.py prototypes\navigation\test_route_provider.py v4\mission_planning\test_mission_planner.py tests\test_platform_api.py
+.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider prototypes\navigation\test_planner_v4.py prototypes\navigation\test_navigation_validation.py prototypes\navigation\test_route_provider.py prototypes\navigation\test_benchmark_navigation.py v4\mission_planning\test_mission_planner.py tests\test_platform_api.py
 .\.venv\Scripts\python.exe prototypes\navigation\route_api.py
 ```
 
@@ -45,6 +43,7 @@ In another terminal, with a standard Node installation on PATH:
 ```powershell
 cd frontend\marseye_app
 npm ci
+npm test
 npm run lint
 npm run build
 npm run preview
