@@ -18,7 +18,7 @@ for p in (str(ROOT), str(HERE)):
 
 from planner_v4 import RouteEngine  # noqa: E402
 from route_provider import RouteProvider  # noqa: E402
-from mission_service import MissionService  # noqa: E402
+from mission_service import MissionService, PRESET_MISSION  # noqa: E402
 
 
 class TestThermalCost(unittest.TestCase):
@@ -44,16 +44,17 @@ class TestMissionService(unittest.TestCase):
         cls.svc = MissionService.from_repo(ROOT)
 
     def test_three_routes_and_order(self):
-        wps = [{"id": "S1", "rc": [75, 150]}, {"id": "S2", "rc": [45, 65]}, {"id": "S3", "rc": [150, 100]}]
-        res = self.svc.plan_mission([99, 20], [99, 180], wps, "optimized")
+        wps = PRESET_MISSION["waypoints"]
+        A, B = PRESET_MISSION["start_rc"], PRESET_MISSION["goal_rc"]
+        res = self.svc.plan_mission(A, B, wps, "optimized")
         self.assertEqual(set(res["routes"]), {"shortest", "astronaut", "rover"})
         for key, r in res["routes"].items():
             self.assertEqual(r["status"], "found", key)
             self.assertEqual(r["visit_order"][0], "A")
             self.assertEqual(r["visit_order"][-1], "B")
             self.assertEqual(sorted(r["visit_order"][1:-1]), ["S1", "S2", "S3"])
-            self.assertEqual(r["points_rc"][0], [99, 20])
-            self.assertEqual(r["points_rc"][-1], [99, 180])
+            self.assertEqual(r["points_rc"][0], A)
+            self.assertEqual(r["points_rc"][-1], B)
             for w in wps:
                 self.assertIn(w["rc"], r["points_rc"])
             self.assertGreaterEqual(r["savings_vs_manual"]["objective_saved"], -1e-6)
@@ -63,12 +64,12 @@ class TestMissionService(unittest.TestCase):
             self.assertTrue(st["min"] - 0.01 <= r["min_temp_k"] <= r["mean_temp_k"] <= r["max_temp_k"] <= st["max"] + 0.01)
         json.dumps(res, allow_nan=False)
         # Shortest really is the shortest of the 3 for a direct A->B
-        direct = self.svc.plan_mission([99, 20], [99, 180], [], "optimized")["routes"]
+        direct = self.svc.plan_mission(A, B, [], "optimized")["routes"]
         self.assertLessEqual(direct["shortest"]["distance_m"], direct["astronaut"]["distance_m"] + 1e-6)
 
     def test_manual_keeps_click_order(self):
-        wps = [{"id": "S1", "rc": [75, 150]}, {"id": "S2", "rc": [45, 65]}]
-        r = self.svc.plan_mission([99, 20], [99, 180], wps, "manual")["routes"]["rover"]
+        wps = PRESET_MISSION["waypoints"][:2]
+        r = self.svc.plan_mission(PRESET_MISSION["start_rc"], PRESET_MISSION["goal_rc"], wps, "manual")["routes"]["rover"]
         self.assertEqual(r["visit_order"], ["A", "S1", "S2", "B"])
 
     def test_bad_input(self):
@@ -96,15 +97,16 @@ class TestApi(unittest.TestCase):
         h = c.get("/api/health").json()
         self.assertEqual(h["status"], "ok")
         self.assertTrue(h["thermal_in_cost"])
-        self.assertEqual(c.get("/api/terrain/metadata").json()["grid_shape"], [198, 200])
-        r = c.post("/api/route", json={"start_rc": [99, 20], "goal_rc": [99, 180], "profile": "rover"})
+        self.assertEqual(c.get("/api/terrain/metadata").json()["grid_shape"], [200, 200])
+        A, B = PRESET_MISSION["start_rc"], PRESET_MISSION["goal_rc"]
+        r = c.post("/api/route", json={"start_rc": A, "goal_rc": B, "profile": "rover"})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["routes"]["risk_aware"]["status"], "found")
-        m = c.post("/api/mission", json={"start_rc": [99, 20], "goal_rc": [99, 180],
-                                         "waypoints": [{"id": "S1", "rc": [45, 65]}], "order_mode": "optimized"})
+        m = c.post("/api/mission", json={"start_rc": A, "goal_rc": B,
+                                         "waypoints": [PRESET_MISSION["waypoints"][0]], "order_mode": "optimized"})
         self.assertEqual(m.status_code, 200)
         self.assertEqual(m.json()["routes"]["astronaut"]["visit_order"], ["A", "S1", "B"])
-        bad = c.post("/api/mission", json={"start_rc": [500, 20], "goal_rc": [99, 180]})
+        bad = c.post("/api/mission", json={"start_rc": [500, 20], "goal_rc": B})
         self.assertEqual(bad.status_code, 422)
         cors = c.options("/api/mission", headers={"Origin": "http://127.0.0.1:8000",
                                                   "Access-Control-Request-Method": "POST"})

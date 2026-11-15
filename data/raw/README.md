@@ -1,5 +1,21 @@
 # MarsEye — Gale Crater raw data
 
+## Current inputs (since the 1024 px data update)
+
+All three current files share the same CRS (Mars 2000 Sphere, geographic), the same bounding box
+(137.5195–137.5365 E, -4.7010 to -4.6842 N) and the same 1024 x 1024 pixel grid (~0.98 m).
+
+- `topographic/gale_dem_1024.tif`: float32 elevation (m). Box-averaged to the 200 x 200 routing grid by
+  `scripts/prepare_terrain_grid.py`. Southern ~25 % is coarse fill outside the HiRISE strip.
+- `optical/optik_ctx_1024.tif`: MRO CTX Gale mosaic, 8-bit. Verified to match the DEM relief at zero shift.
+- `thermal/themis_ir_day_1024.tif`: THEMIS daytime IR picture, 8-bit grey + alpha, no temperature units.
+  Used only as the visual "Day IR image" layer. Routing/telemetry temperatures still come from the
+  night THEMIS BTR `thermal/I01350002PBT.IMG` (Kelvin).
+
+The older files below (`1kmistenilenyer.tif`, `mosaic1km.tif`) are kept for history but are no longer used.
+
+## Legacy description
+
 This directory stores the two original, georeferenced TIFF exports used for the MarsEye Gale Crater pilot area. Preserve the files without modifying their raster content.
 
 ## Files

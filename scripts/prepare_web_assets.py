@@ -5,9 +5,11 @@ Run from the repository root:
     python scripts/prepare_web_assets.py
 
 Inputs (canonical files only):
-  data/raw/optical/mosaic1km.tif                      MRO CTX mosaic, 200 x 201, ~5 m/px
+  data/raw/optical/optik_ctx_1024.tif                 MRO CTX Gale mosaic, 1024 x 1024, ~1 m/px
+  data/raw/thermal/themis_ir_day_1024.tif             THEMIS IR day image (8-bit, relative brightness only)
   data/processed/thermal/I01350002PBT_gale_100m.tif   THEMIS IR Band 9 PBT, 11 x 11, 100 m/px
-  data/processed/elevation.npy, valid_mask.npy, terrain_meta.json   198 x 200 DEM grid
+  data/processed/elevation.npy, valid_mask.npy, terrain_meta.json   200 x 200 grid
+      (made by scripts/prepare_terrain_grid.py from data/raw/topographic/gale_dem_1024.tif)
 
 Outputs:
   data/processed/optical_mosaic.png            contrast-enhanced optical texture (north up)
@@ -37,7 +39,8 @@ if str(ROOT) not in sys.path:
 
 DATA = ROOT / "data" / "processed"
 THERMAL_DIR = DATA / "thermal"
-OPTICAL_TIF = ROOT / "data" / "raw" / "optical" / "mosaic1km.tif"
+OPTICAL_TIF = ROOT / "data" / "raw" / "optical" / "optik_ctx_1024.tif"   # 1024x1024 ~1 m, Mars 2000 sphere
+THERMAL_DAY_TIF = ROOT / "data" / "raw" / "thermal" / "themis_ir_day_1024.tif"  # 8-bit visual, NO Kelvin
 THERMAL_TIF = THERMAL_DIR / "I01350002PBT_gale_100m.tif"
 
 MARS_RADIUS_M = 3396190.0          # sphere used by the THEMIS PDS Sinusoidal product
@@ -117,11 +120,26 @@ def prepare_optical(meta: dict) -> dict:
     img8 = (stretched * 255).round().astype(np.uint8)
     img = Image.fromarray(img8, mode="L")
     # 4x Lanczos upsample: same footprint, smoother texture filtering in WebGL.
-    img = img.resize((img.width * 4, img.height * 4), Image.LANCZOS).convert("RGB")
+    if img.width < 800:  # small exports: smooth upsample for WebGL; 1024 px exports are used as-is
+        img = img.resize((img.width * 4, img.height * 4), Image.LANCZOS)
+    img = img.convert("RGB")
     out = DATA / "optical_mosaic.png"
     img.save(out, optimize=True)
     return {"file": str(out.relative_to(ROOT)), "source_shape": list(arr.shape),
             "stretch_percentiles": [1.0, 99.5], "flipped_to_north_up": bool(flipped)}
+
+
+def prepare_thermal_day() -> dict | None:
+    """THEMIS daytime IR export: an 8-bit grey picture (no temperature units). Visual layer only."""
+    if not THERMAL_DAY_TIF.is_file():
+        return None
+    arr, _ = read_tif(THERMAL_DAY_TIF)
+    grey = arr[..., 0] if arr.ndim == 3 else arr
+    g = grey.astype(np.float64)
+    lo, hi = np.percentile(g, [1, 99])
+    rgb = colormap((g - lo) / max(hi - lo, 1e-6))
+    Image.fromarray(rgb).save(THERMAL_DIR / "themis_day_ir.png", optimize=True)
+    return {"file": "thermal/themis_day_ir.png", "shape": list(g.shape), "unit": "relative 8-bit brightness (no Kelvin)"}
 
 
 # --------------------------------------------------------------------------- thermal
@@ -151,8 +169,10 @@ def dem_lat_to_planetocentric(lat_deg, meta: dict):
 def read_themis_window(meta: dict):
     """Read the full PDS3 THEMIS PBT strip and cut a window around the DEM's true location.
 
-    Pixel centres (0-based, verified against the team's original 11x11 clip):
-      col = x/100 + 415.5,  row = -y/100 - 951.5   (x, y in metres, Sinusoidal, lon0=137.483)
+    Pixel centres (0-based), GDAL's reading of the PDS3 label
+    (SAMPLE_PROJECTION_OFFSET 416.5, LINE_PROJECTION_OFFSET -950.5, 100 m):
+      col = x/100 + 416.5,  row = -y/100 - 950.5   (x, y in metres, Sinusoidal, lon0=137.483)
+    Checked: the team's 11x11 GDAL clip is found verbatim (0.000 K difference) at exactly these pixels.
     """
     label = THERMAL_IMG.read_bytes()[:20000].decode("latin-1")
     rec = int(label.split("RECORD_BYTES")[1].split("=")[1].split()[0])
@@ -165,19 +185,21 @@ def read_themis_window(meta: dict):
     LON, LAT = np.meshgrid(lons, lats)
     x = MARS_RADIUS_M * np.radians(LON - THEMIS_CENTRAL_MERIDIAN) * np.cos(np.radians(LAT))
     y = MARS_RADIUS_M * np.radians(LAT)
-    cols_f, rows_f = x / 100 + 415.5, -y / 100 - 951.5
+    cols_f, rows_f = x / 100 + 416.5, -y / 100 - 950.5
     i0, i1 = int(np.floor(rows_f.min())) - 1, int(np.ceil(rows_f.max())) + 1
     j0, j1 = int(np.floor(cols_f.min())) - 1, int(np.ceil(cols_f.max())) + 1
     win = img[i0:i1 + 1, j0:j1 + 1]
     if np.any(win <= 0):
         raise ValueError("THEMIS NULL (0) pixels inside the pilot window")
-    tags = {"tie": ((j0 - 416.0) * 100.0, -(i0 + 951.0) * 100.0), "scale": (100.0, 100.0), "nodata": 0.0,
+    tags = {"tie": ((j0 - 417.0) * 100.0, -(i0 + 950.0) * 100.0), "scale": (100.0, 100.0), "nodata": 0.0,
             "window_rows_cols": [i0, i1, j0, j1]}
     return win, tags
 
 
 def prepare_thermal(meta: dict, shape: tuple[int, int]) -> dict:
-    if DEM_LAT_CORRECTION and THERMAL_IMG.is_file():
+    # Default: sample the raw PDS3 strip directly (same pixels as the team's clip, but the box
+    # edges get real THEMIS values instead of the clip's -9999 border). Fallback: the 11x11 clip.
+    if THERMAL_IMG.is_file() and "--thermal-clip" not in sys.argv:
         raw, tags = read_themis_window(meta)
         source = f"{THERMAL_IMG.relative_to(ROOT)} (full PDS3 strip, window {tags['window_rows_cols']})"
     else:  # fallback: team's 11x11 clip (NOTE: clipped with the DEM's numeric bbox, see docstring above)
@@ -269,7 +291,7 @@ def prepare_thermal(meta: dict, shape: tuple[int, int]) -> dict:
                                "shape": list(native.shape), "temp_k": np.round(native, 3).tolist()},
         "source": source,
         "alignment": (("DEM latitude converted planetographic -> planetocentric, " if DEM_LAT_CORRECTION else
-                       "DEM latitude used as-is (same numeric bbox as the team's clip), ") +
+                       "DEM bbox used as-is (DEM, CTX and THEMIS all on the Mars 2000 sphere), ") +
                       "cell centres projected to THEMIS Sinusoidal (sphere R=3396190 m, lon0=137.483); "
                       "edge cells on the NoData border use the nearest valid THEMIS pixel."),
         "interpolation_for_routing": "bilinear between valid 100 m pixel centres",
@@ -320,7 +342,7 @@ def prepare_terrain_and_routes(meta: dict) -> dict:
     }
     (DATA / "terrain.json").write_text(json.dumps(terrain, separators=(",", ":"), allow_nan=False), encoding="utf-8")
 
-    default = service.plan_mission([99, 20], [99, 180], [], "optimized")
+    default = service.plan_mission(PRESET_MISSION["start_rc"], PRESET_MISSION["goal_rc"], [], "optimized")
     (DATA / "routes.json").write_text(json.dumps(default, indent=1, allow_nan=False), encoding="utf-8")
     mission = service.plan_mission(PRESET_MISSION["start_rc"], PRESET_MISSION["goal_rc"],
                                    PRESET_MISSION["waypoints"], "optimized")
@@ -334,6 +356,7 @@ def main() -> None:
     meta, elevation, _ = load_terrain()
     print("Optical :", prepare_optical(meta))
     print("Thermal :", prepare_thermal(meta, elevation.shape))
+    print("Day IR  :", prepare_thermal_day())
     print("Routes  :", json.dumps(prepare_terrain_and_routes(meta), ensure_ascii=False))
     for f in ["optical_mosaic.png", "terrain.json", "routes.json", "mission_route.json",
               "thermal/thermal_grid.json", "thermal/thermal_temp_k.npy",
