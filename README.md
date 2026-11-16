@@ -7,7 +7,7 @@ NASA Space Apps Challenge 2026 · Challenge: Interplanetary Survival Guide: Mart
 
 🎬 **30-second demo video:** https://youtu.be/VrQ41ySCDbo
 
-![MarsEye Demo](docs/demo.gif)
+![MarsEye Demo](docs/MarsEyeDemo.gif)
 
 MarsEye turns NASA terrain, optical and thermal data of a ~1 km2 area in Gale Crater into an interactive 3D map.
 Pick a start and a goal, and MarsEye computes three routes side by side: **Shortest Feasible**, **Astronaut Safe** and
